@@ -8,6 +8,41 @@ using System.Threading.Tasks;
 
 namespace FinancialModelB
 {
+    public enum Portfolio          // How is the portfolio constructed?  
+    {
+        Single,             // Portfolio consists of a single mix of equity/bonds/bills
+        Double              // Portfolio consists of 2 parts, each with its own mix of equity/bonds/bills
+        //    Part 1 = same as Single, but without a World (last entry in countries.csv)
+        //    Part 2 = World (last entry in countries.csv
+    };
+
+    public enum RunMode            // How many series do we run? 
+    {
+        Single,             // We run just one series of simulations
+        Sweep               // We run one series per each combination of sweep parameters
+    };
+
+    public enum Factor
+    {
+        Country,            // Try with each country (except World if Dual)
+        Strategy,           // Try every strategy (1..3 for now)
+        Withdrawal,         // Try every withdrawal rate of the predefined set
+        WorldShare,         // Try every world component share of the predefined set
+        Equity,             // Try every equity share of the predefined set
+        Bonds,              // Try every bonds share of the predefined set
+        None,
+    };
+
+    public struct SweepParameters
+    {
+        public int Country;
+        public double WithdrawalRate;
+        public int WorldShare;
+        public int Equity;
+        public int Bonds;
+        public int Strategy;
+    }
+
     public class Params
     {
         public static int PercentageScale { get { return 10000; } }
@@ -20,6 +55,141 @@ namespace FinancialModelB
                 prefix, 
                 DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day,
                 DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+        }
+
+        public static SweepParameters[] Factorize(Factor[] factors, List<Country> countries)
+        {
+            int[] SweepStrategies = { 1, 2, 3 };
+            Double[] SweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 2, 3.5, 4, 4.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
+            int[] SweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            int[] SweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            int[] SweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            SweepParameters[] sweeps = new SweepParameters[1];
+
+            int nCountries = countries.Count;
+
+            for (int f = 0; f < factors.Length; f++)
+            {
+                switch (factors[f])
+                {
+                    case Factor.Strategy:
+                        {
+                            SweepParameters[] oldSweeps = sweeps;
+                            sweeps = new SweepParameters[oldSweeps.Length * SweepStrategies.Length];
+                            int c = 0;
+                            for (int o = 0; o < oldSweeps.Length; o++)
+                            {
+                                for (int n = 0; n < SweepStrategies.Length; n++)
+                                {
+                                    sweeps[c] = oldSweeps[o];
+                                    sweeps[c].Strategy = SweepStrategies[n];
+                                    c++;
+                                }
+                            }
+                        }
+                        break;
+                    case Factor.Withdrawal:
+                        {
+                            SweepParameters[] oldSweeps = sweeps;
+                            sweeps = new SweepParameters[oldSweeps.Length * SweepWithdrawalRates.Length];
+                            int c = 0;
+                            for (int o = 0; o < oldSweeps.Length; o++)
+                            {
+                                for (int n = 0; n < SweepWithdrawalRates.Length; n++)
+                                {
+                                    sweeps[c] = oldSweeps[o];
+                                    sweeps[c].WithdrawalRate = SweepWithdrawalRates[n];
+                                    c++;
+                                }
+                            }
+                        }
+                        break;
+                    case Factor.WorldShare:
+                        {
+                            SweepParameters[] oldSweeps = sweeps;
+                            sweeps = new SweepParameters[oldSweeps.Length * SweepWorldShares.Length];
+                            int c = 0;
+                            for (int o = 0; o < oldSweeps.Length; o++)
+                            {
+                                for (int n = 0; n < SweepWorldShares.Length; n++)
+                                {
+                                    sweeps[c] = oldSweeps[o];
+                                    sweeps[c].WorldShare = SweepWorldShares[n];
+                                    c++;
+                                }
+                            }
+                        }
+                        break;
+                    case Factor.Country:
+                        {
+                            SweepParameters[] oldSweeps = sweeps;
+                            sweeps = new SweepParameters[oldSweeps.Length * nCountries];
+                            int c = 0;
+                            for (int o = 0; o < nCountries; o++)
+                            {
+                                for (int n = 0; n < nCountries; n++)
+                                {
+                                    sweeps[c] = oldSweeps[o];
+                                    sweeps[c].Country = n;
+                                    c++;
+                                }
+                            }
+                        }
+                        break;
+                    case Factor.Equity:
+                        {
+                            SweepParameters[] oldSweeps = sweeps;
+                            sweeps = new SweepParameters[oldSweeps.Length * SweepEquities.Length];
+                            int c = 0;
+                            for (int o = 0; o < oldSweeps.Length; o++)
+                            {
+                                for (int n = 0; n < SweepEquities.Length; n++)
+                                {
+                                    sweeps[c] = oldSweeps[o];
+                                    sweeps[c].Equity = SweepEquities[n];
+                                    c++;
+                                }
+                            }
+                        }
+                        break;
+                    case Factor.Bonds:
+                        {
+                            SweepParameters[] oldSweeps = sweeps;
+                            sweeps = new SweepParameters[oldSweeps.Length * SweepBonds.Length];
+                            int c = 0;
+                            for (int o = 0; o < oldSweeps.Length; o++)
+                            {
+                                for (int n = 0; n < SweepBonds.Length; n++)
+                                {
+                                    sweeps[c] = oldSweeps[o];
+                                    sweeps[c].Bonds = SweepBonds[n];
+                                    c++;
+                                }
+                            }
+                        }
+                        break;
+                    case Factor.None:
+                        break;
+                }
+            }
+
+            List<SweepParameters> sweeps1 = new List<SweepParameters>();
+            int count = 0;
+            for (int i = 0; i < sweeps.Length; i++)
+            {
+                if (sweeps[i].Equity + sweeps[i].Bonds <= 100)
+                {
+                    sweeps1.Add(sweeps[i]);
+                    count++;
+                }
+            }
+
+            sweeps = new SweepParameters[count];
+            int cn = 0;
+            foreach (SweepParameters s in sweeps1)
+                sweeps[cn++] = s;
+
+            return sweeps;
         }
     }
 

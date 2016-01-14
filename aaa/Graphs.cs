@@ -111,8 +111,7 @@ namespace FinancialModelB
             List<Country> countries,
             List<int> equityChanges, 
             List<int> bondChanges, 
-            List<int> billChanges,
-            Object printlock)
+            List<int> billChanges)
         {
             Color[] typicals = new Color[nColors];
             int[] counters = new int[nColors];
@@ -135,10 +134,7 @@ namespace FinancialModelB
 
                 if (cn.Weight == 0)
                 {
-                    lock (printlock)
-                    {
-                        Console.WriteLine("Skipping {0}", country);
-                    }
+                    Console.WriteLine("Skipping {0}", country);
                     continue;
                 }
 
@@ -317,13 +313,10 @@ namespace FinancialModelB
                     double equityError = (cn.LastEquity - lastEquity) / cn.LastEquity;
                     double bondError = (cn.LastBond - lastBond) / cn.LastBond;
                     double billError = (cn.LastBill - lastBill) / cn.LastBill;
-                    lock (printlock)
-                    {
-                        Console.WriteLine("{0}: {1:F2}, {2:F2}, {3:F2}, equity: {4:F2} vs {5:F2}, bonds {6:F2} vs {7:F2}, bills {8:F2} vs {9:F2}",
-                            country,
-                            equityError, bondError, billError,
-                            lastEquity, cn.LastEquity, lastBond, cn.LastBond, lastBill, cn.LastBill);
-                    }
+                    Console.WriteLine("{0}: {1:F2}, {2:F2}, {3:F2}, equity: {4:F2} vs {5:F2}, bonds {6:F2} vs {7:F2}, bills {8:F2} vs {9:F2}",
+                        country,
+                        equityError, bondError, billError,
+                        lastEquity, cn.LastEquity, lastBond, cn.LastBond, lastBill, cn.LastBill);
                 }
 
             }

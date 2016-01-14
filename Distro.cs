@@ -61,14 +61,18 @@ namespace FinancialModelB
             return accumulatedProbability[ind].Midpoint / Params.PercentageScale;
         }
 
-        public static void PrepareDistribution(List<int> changes, Distro distro, int bins, string resultPath)
+        public static void PrepareDistribution(
+            List<int> changes, Distro distro, int bins, string resultPath, Object printLock)
         {
             int minChange = changes.Min();
             int maxChange = changes.Max();
             int span = maxChange - minChange;
             if (span == 0)
             {
-                Console.WriteLine("CANNOT CREATE {0} - no changes: {1} , { 2}", resultPath, minChange, maxChange);
+                lock (printLock)
+                {
+                    Console.WriteLine("CANNOT CREATE {0} - no changes: {1} , { 2}", resultPath, minChange, maxChange);
+                }
                 return;
             }
 
@@ -94,8 +98,83 @@ namespace FinancialModelB
                 }
             }
 
-            Console.WriteLine("Accumulated: {0}", distro.GetAccumulation());
+            lock (printLock)
+            {
+                Console.WriteLine("Accumulated: {0}", distro.GetAccumulation());
+            }
         }
+
+        public static void Test(
+            Distro distroEquities, Distro distroBonds, Distro distroBills, 
+            Object printlock)
+        {
+            int[] tests = {1,2,3};
+            ParallelLoopResult res1 = Parallel.ForEach(
+                    tests,
+                    (t) =>
+                    {
+                        List<int> testValues = new List<int>();
+                        Distro distroTest = new Distro(Params.Bins);
+                        switch (t)
+                        {
+                            case 1:
+                                for (int i = 0; i < 10000000; i++)
+                                    testValues.Add((int)(distroEquities.Play() * Params.PercentageScale));
+                                Distro.PrepareDistribution(
+                                    testValues, distroTest, 
+                                    Params.Bins, "testEq.csv", printlock);
+                                break;
+                            case 2:
+                                for (int i = 0; i < 10000000; i++)
+                                    testValues.Add((int)(distroBonds.Play() * Params.PercentageScale));
+                                Distro.PrepareDistribution(
+                                    testValues, distroTest, 
+                                    Params.Bins, "testBo.csv", printlock);
+                                break;
+                            case 3:
+                                for (int i = 0; i < 10000000; i++)
+                                    testValues.Add((int)(distroBills.Play() * Params.PercentageScale));
+                                Distro.PrepareDistribution(
+                                    testValues, distroTest, 
+                                    Params.Bins, "testBi.csv", printlock);
+                                break;
+                        }
+                    });
+        }
+
+        public static void Prepare(
+            List<int> equityChanges, List<int> bondChanges,  List<int> billChanges,
+            Distro distroEquities,   Distro distroBonds,     Distro distroBills,
+            Object printlock)
+        {
+            int[] cases = { 1, 2, 3 };
+            ParallelLoopResult res1 = Parallel.ForEach(
+                    cases,
+                    (t) =>
+                    {
+                        List<int> testValues = new List<int>();
+                        Distro distroTest = new Distro(Params.Bins);
+                        switch (t)
+                        {
+                            case 1:
+                                Distro.PrepareDistribution(
+                                    equityChanges, distroEquities,
+                                    Params.Bins, "DistroEquities.csv", printlock);
+                                break;
+                            case 2:
+                                Distro.PrepareDistribution(
+                                    bondChanges, distroBonds,
+                                    Params.Bins, "DistroBonds.csv", printlock);
+                                break;
+                            case 3:
+                                Distro.PrepareDistribution(
+                                    billChanges, distroBills,
+                                    Params.Bins, "DistroBills.csv", printlock);
+                                break;
+                        }
+                    });
+        }
+
 
         private int bins;
         private double curAccumulatedProb;
