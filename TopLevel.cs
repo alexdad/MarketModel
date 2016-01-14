@@ -172,17 +172,24 @@ namespace FinancialModelB
 
             if (sweepMode)
             {
-
+                if (portfolio == Portfolio.Single)
+                {
+                    ExecuteSweepSingle(countries, models, sweeps, resFile, printLock);
+                }
+                else if (portfolio == Portfolio.Double)
+                {
+                    ExecuteSweepDouble(countries, models, sweeps, resFile, printLock);
+                }
             }
             else
             {
                 if (portfolio == Portfolio.Single)
                 {
-                    ExecuteSingle(countries, models, portfolio, resFile, printLock);
+                    ExecuteSingle(countries, models, resFile, printLock);
                 }
                 else if (portfolio == Portfolio.Double)
                 {
-                    ExecuteDouble(countries, models, portfolio, resFile, printLock);
+                    ExecuteDouble(countries, models, resFile, printLock);
                 }
             }
         }
@@ -191,7 +198,6 @@ namespace FinancialModelB
         static void ExecuteSingle(
             List<Country> countries,
             List<Model> models,
-            Portfolio portfolio,
             string resFile,
             Object printlock)
         {
@@ -219,7 +225,7 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<double> result = Models.Run(
+                    List<double> result = Models.RunSingle(
                         m,
                         distroEquities, distroBonds, distroBills);
 
@@ -257,7 +263,6 @@ namespace FinancialModelB
         static void ExecuteDouble(
             List<Country> countries,
             List<Model> models,
-            Portfolio portfolio,
             string resFile,
             Object printlock)
         {
@@ -287,7 +292,7 @@ namespace FinancialModelB
             List<int> bondChanges = new List<int>();
             List<int> billChanges = new List<int>();
 
-            GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges);
+            GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
 
             Distro distroEquities = new Distro(Params.Bins);
             Distro distroBonds = new Distro(Params.Bins);
@@ -337,6 +342,28 @@ namespace FinancialModelB
                         }
                     }
                 });
+        }
+
+        // Sweep run for a single portfolio
+        static void ExecuteSweepSingle(
+            List<Country> countries,
+            List<Model> models,
+            SweepParameters[] sweeps,
+            string resFile,
+            Object printlock)
+        {
+
+        }
+
+        // Sweep run for a double-part portfolio 
+        static void ExecuteSweepDouble(
+            List<Country> countries,
+            List<Model> models,
+            SweepParameters[] sweeps,
+            string resFile,
+            Object printlock)
+        {
+
         }
     }
 }
