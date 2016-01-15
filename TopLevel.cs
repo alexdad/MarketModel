@@ -148,7 +148,7 @@ namespace FinancialModelB
             // Prepare sweep parameters
             if (sweepMode != SweepMode.No)
             {
-                sweeps = Params.Factorize(factors, countries);
+                sweeps = Utils.Factorize(factors, countries);
                 Console.WriteLine("You requested to sweep across {0} combinations", sweeps.Length);
             }
 
@@ -160,7 +160,7 @@ namespace FinancialModelB
                 portfolio,
                 sweepMode,
                 sweeps,
-                Params.ResultFileName(resultPrefix));
+                Utils.ResultFileName(resultPrefix));
         }
 
         static void Execute(
@@ -210,18 +210,21 @@ namespace FinancialModelB
             }
 
             IEnumerable<ModelResult> sortedResults = modelResults.OrderBy(
-                mr => ((mr.model.Strategy * 100 + 
-                        mr.model.StartEq) * 100 + 
-                        mr.model.StartBo) * 100 + 
-                        mr.model.YearlyWithdrawal);
+                mr => ((mr.model.CountryName + 
+                        (mr.model.Strategy * 100).ToString() +
+                        (mr.model.StartEq) * 100).ToString() +
+                        (mr.model.StartBo) * 100).ToString() +
+                        (mr.model.YearlyWithdrawal).ToString());
+
+            Dictionary<string, double> cutoffs = new Dictionary<string, double>();
 
             using (StreamWriter sw = new StreamWriter(resFile))
             {
-                sw.WriteLine("Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,SuccessRate, ");
+                sw.WriteLine(Utils.ResultHeader);
+
                 foreach(ModelResult mr in sortedResults)
                 {
-                    sw.WriteLine(
-                        "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F2},{10:F2},{11:F2},{12:F2},",
+                    Utils.WriteResult(sw,
                         mr.model.CountryName,
                         mr.model.Strategy,
                         mr.model.StartEq,
@@ -235,6 +238,23 @@ namespace FinancialModelB
                         mr.withdrawalMax,
                         mr.withdrawalMin,
                         mr.trailSuccessRate);
+
+                    if (mr.trailSuccessRate >= globals.CutoffPercent / 100.0)
+                    {
+                        // Assuming sorted order!
+                        if (cutoffs.ContainsKey(mr.model.CountryName))
+                            cutoffs[mr.model.CountryName] = mr.model.YearlyWithdrawal;
+                        else
+                            cutoffs.Add(mr.model.CountryName, mr.model.YearlyWithdrawal);
+                    }
+                }
+            }
+
+            using (StreamWriter sw = new StreamWriter("Summary_" + resFile))
+            {
+                foreach(string c in cutoffs.Keys)
+                {
+                    sw.WriteLine("{0},{1:F1}", c, cutoffs[c]);
                 }
             }
         }
@@ -253,19 +273,25 @@ namespace FinancialModelB
 
             GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
 
-            Distro distroEquities = new Distro(Params.Bins);
-            Distro distroBonds = new Distro(Params.Bins);
-            Distro distroBills = new Distro(Params.Bins);
+            Distro distroEquities = new Distro(globals.Bins);
+            Distro distroBonds = new Distro(globals.Bins);
+            Distro distroBills = new Distro(globals.Bins);
 
             Distro.Prepare(
+                globals,
                 equityChanges, bondChanges, billChanges,
                 distroEquities, distroBonds, distroBills,
                 printlock);
 
             Distro.Test(
+                globals,
                 distroEquities, distroBonds, distroBills,
                 printlock);
 
+            lock (printlock)
+            {
+                Console.WriteLine(Utils.ResultHeader);
+            }
 
             ParallelLoopResult res = Parallel.ForEach(
                 models,
@@ -276,7 +302,19 @@ namespace FinancialModelB
                         m,
                         distroEquities, distroBonds, distroBills);
 
-                    modelResults.Add(new ModelResult(m, result));
+                    ModelResult mr = new ModelResult(m, result);
+                    modelResults.Add(mr);
+
+                    lock(printlock)
+                    {
+                        Utils.WriteResult(null, 
+                            m.CountryName, m.Strategy, 
+                            m.StartEq, m.StartBo, 
+                            m.YearlyWithdrawal, m.RebalanceEvery,
+                            mr.trailAverage, mr.trailMax, mr.trailMin, 
+                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                            mr.trailSuccessRate);
+                    }
                 });
         }
 
@@ -297,11 +335,12 @@ namespace FinancialModelB
 
             GraphAcquierer.Acquire(world, equityChangesW, bondChangesW, billChangesW, printlock);
 
-            Distro distroEquitiesW = new Distro(Params.Bins);
-            Distro distroBondsW = new Distro(Params.Bins);
-            Distro distroBillsW = new Distro(Params.Bins);
+            Distro distroEquitiesW = new Distro(globals.Bins);
+            Distro distroBondsW = new Distro(globals.Bins);
+            Distro distroBillsW = new Distro(globals.Bins);
 
             Distro.Prepare(
+                globals,
                 equityChangesW, bondChangesW, billChangesW,
                 distroEquitiesW, distroBondsW, distroBillsW,
                 printlock);
@@ -316,15 +355,20 @@ namespace FinancialModelB
 
             GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
 
-            Distro distroEquities = new Distro(Params.Bins);
-            Distro distroBonds = new Distro(Params.Bins);
-            Distro distroBills = new Distro(Params.Bins);
+            Distro distroEquities = new Distro(globals.Bins);
+            Distro distroBonds = new Distro(globals.Bins);
+            Distro distroBills = new Distro(globals.Bins);
 
             Distro.Prepare(
+                globals,
                 equityChanges, bondChanges, billChanges,
                 distroEquities, distroBonds, distroBills,
                 printlock);
 
+            lock (printlock)
+            {
+                Console.WriteLine(Utils.ResultHeader);
+            }
 
             ParallelLoopResult res = Parallel.ForEach(
                 models,
@@ -337,7 +381,20 @@ namespace FinancialModelB
                         distroEquities, distroBonds, distroBills,
                         distroEquitiesW, distroBondsW, distroBillsW);
 
-                    modelResults.Add(new ModelResult(m, result));
+                    ModelResult mr = new ModelResult(m, result);
+                    modelResults.Add(mr);
+
+                    lock (printlock)
+                    {
+                        Utils.WriteResult(null,
+                            m.CountryName, m.Strategy,
+                            m.StartEq, m.StartBo,
+                            m.YearlyWithdrawal, m.RebalanceEvery,
+                            mr.trailAverage, mr.trailMax, mr.trailMin,
+                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                            mr.trailSuccessRate);
+                    }
+
                 });
         }
 
@@ -358,18 +415,25 @@ namespace FinancialModelB
 
             GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
 
-            Distro distroEquities = new Distro(Params.Bins);
-            Distro distroBonds = new Distro(Params.Bins);
-            Distro distroBills = new Distro(Params.Bins);
+            Distro distroEquities = new Distro(globals.Bins);
+            Distro distroBonds = new Distro(globals.Bins);
+            Distro distroBills = new Distro(globals.Bins);
 
             Distro.Prepare(
+                globals,
                 equityChanges, bondChanges, billChanges,
                 distroEquities, distroBonds, distroBills,
                 printlock);
 
             Distro.Test(
+                globals,
                 distroEquities, distroBonds, distroBills,
                 printlock);
+
+            lock (printlock)
+            {
+                Console.WriteLine(Utils.ResultHeader);
+            }
 
             ParallelLoopResult res2 = Parallel.ForEach(
                 models,
@@ -385,7 +449,19 @@ namespace FinancialModelB
                                 mm,
                                 distroEquities, distroBonds, distroBills);
 
-                            modelResults.Add(new ModelResult(mm, result));
+                            ModelResult mr = new ModelResult(mm, result);
+                            modelResults.Add(mr);
+
+                            lock (printlock)
+                            {
+                                Utils.WriteResult(null,
+                                    m.CountryName, m.Strategy,
+                                    m.StartEq, m.StartBo,
+                                    m.YearlyWithdrawal, m.RebalanceEvery,
+                                    mr.trailAverage, mr.trailMax, mr.trailMin,
+                                    mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                    mr.trailSuccessRate);
+                            }
                         });
                 });
         }
@@ -424,18 +500,25 @@ namespace FinancialModelB
 
                 GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
 
-                Distro distroEquities = new Distro(Params.Bins);
-                Distro distroBonds = new Distro(Params.Bins);
-                Distro distroBills = new Distro(Params.Bins);
+                Distro distroEquities = new Distro(globals.Bins);
+                Distro distroBonds = new Distro(globals.Bins);
+                Distro distroBills = new Distro(globals.Bins);
 
                 Distro.Prepare(
+                    globals,
                     equityChanges, bondChanges, billChanges,
                     distroEquities, distroBonds, distroBills,
                     printlock);
 
                 Distro.Test(
+                    globals,
                     distroEquities, distroBonds, distroBills,
                     printlock);
+
+                lock (printlock)
+                {
+                    Console.WriteLine(Utils.ResultHeader);
+                }
 
                 ParallelLoopResult res2 = Parallel.ForEach(
                     models,
@@ -453,7 +536,20 @@ namespace FinancialModelB
                                         mm,
                                         distroEquities, distroBonds, distroBills);
 
-                                    modelResults.Add(new ModelResult(mm, result));
+                                    ModelResult mr = new ModelResult(mm, result);
+                                    modelResults.Add(mr);
+
+                                    lock (printlock)
+                                    {
+                                        Utils.WriteResult(null,
+                                            mm.CountryName, mm.Strategy,
+                                            mm.StartEq, mm.StartBo,
+                                            mm.YearlyWithdrawal, mm.RebalanceEvery,
+                                            mr.trailAverage, mr.trailMax, mr.trailMin,
+                                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                            mr.trailSuccessRate);
+                                    }
+
                                 }
                             });
                     });

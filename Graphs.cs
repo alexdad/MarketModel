@@ -93,13 +93,13 @@ namespace FinancialModelB
 
         static void CountChanges(double oldVal, double newVal, int weight, List<int> changes)
         {
-            int prc = (int)((newVal - oldVal) / oldVal * Params.PercentageScale);
+            int prc = (int)((newVal - oldVal) / oldVal * Utils.PercentageScale);
             const double minOldValueToCount = 0.001;
             if (Math.Abs(oldVal) < minOldValueToCount)
                 return;
 
-            if (prc > Params.PercentageScale)
-                Console.WriteLine("Skipping suspicious change: percentage = {0}", (double)prc / (double)Params.PercentageScale * 100.0);
+            if (prc > Utils.PercentageScale)
+                Console.WriteLine("Skipping suspicious change: percentage = {0}", (double)prc / (double)Utils.PercentageScale * 100.0);
             else
             {
                 for (int w = 0; w < weight; w++)

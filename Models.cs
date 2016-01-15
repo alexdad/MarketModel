@@ -28,8 +28,8 @@ namespace FinancialModelB
             // For Strategy 3, we need to recalc withdrawals once a year based on prior 3 years
             if (m.Strategy == 3)
             {
-                if (c >= 3 * (int)Params.StepsInYear && c % ((int)Params.StepsInYear) == 0)
-                    curWithdrawal = prior.Average() * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
+                if (c >= 3 * (int)Utils.StepsInYear && c % ((int)Utils.StepsInYear) == 0)
+                    curWithdrawal = prior.Average() * m.YearlyWithdrawal / 100.0 / Utils.StepsInYear;
             }
             // For Strategy 1, withdrawal is constant
             else if (m.Strategy == 1)
@@ -82,7 +82,7 @@ namespace FinancialModelB
             else if (m.Strategy == 2)
             {
                 // Strategy 2 = calculate withdrawal as percentage of current
-                double w = (1.0 - m.YearlyWithdrawal / 100.0 / Params.StepsInYear);
+                double w = (1.0 - m.YearlyWithdrawal / 100.0 / Utils.StepsInYear);
                 withdrawals.Add((eq + bo + bi) * (1.0 - w));
                 eq *= w;
                 bo *= w;
@@ -113,9 +113,9 @@ namespace FinancialModelB
             Distro distroEq, Distro distroBo, Distro distroBi)
         {
             int rebalanceEvery = m.RebalanceEvery;
-            double initialWithdrawal = globals.StartSum * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
+            double initialWithdrawal = globals.StartSum * m.YearlyWithdrawal / 100.0 / Utils.StepsInYear;
             double curWithdrawal = initialWithdrawal;
-            double[] prior = new double[3 * (int)Params.StepsInYear];
+            double[] prior = new double[3 * (int)Utils.StepsInYear];
 
             List<SingleRunResult> singleRunResults = new List<SingleRunResult>();
 
@@ -154,10 +154,10 @@ namespace FinancialModelB
             Distro distroEq1, Distro distroBo1, Distro distroBi1,
             Distro distroEq2, Distro distroBo2, Distro distroBi2)
         {
-            double withdrawal = m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
+            double withdrawal = m.YearlyWithdrawal / 100.0 / Utils.StepsInYear;
             int rebalanceEvery = m.RebalanceEvery;
-            double initialWithdrawal = globals.StartSum * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
-            double[] prior = new double[3 * (int)Params.StepsInYear];
+            double initialWithdrawal = globals.StartSum * m.YearlyWithdrawal / 100.0 / Utils.StepsInYear;
+            double[] prior = new double[3 * (int)Utils.StepsInYear];
             double curWithdrawal = initialWithdrawal;
 
             List<SingleRunResult> results = new List<SingleRunResult>();
@@ -188,8 +188,8 @@ namespace FinancialModelB
                     // For Strategy 3, we need to recalc withdrawals once a year based on prior 3 years
                     if (m.Strategy == 3)
                     {
-                        if (c >= 3 * (int)Params.StepsInYear && c % ((int)Params.StepsInYear) == 0)
-                            curWithdrawal = prior.Average() * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
+                        if (c >= 3 * (int)Utils.StepsInYear && c % ((int)Utils.StepsInYear) == 0)
+                            curWithdrawal = prior.Average() * m.YearlyWithdrawal / 100.0 / Utils.StepsInYear;
                     }
                     // For Strategy 1, withdrawal is constant
                     else if (m.Strategy == 1)
@@ -246,7 +246,7 @@ namespace FinancialModelB
                     else if (m.Strategy == 2)
                     {
                         // Strategy 2 = calculate withdrawal as percentage of current
-                        double w = (1.0 - m.YearlyWithdrawal / 100.0 / Params.StepsInYear);
+                        double w = (1.0 - m.YearlyWithdrawal / 100.0 / Utils.StepsInYear);
                         eq1 *= w;
                         bo1 *= w;
                         bi1 *= w;

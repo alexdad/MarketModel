@@ -49,12 +49,42 @@ namespace FinancialModelB
         public int Strategy;
     }
 
-    public class Params
+    public class Utils
     {
         public static int PercentageScale { get { return 10000; } }
-        public static int Bins { get { return 200; } }
         public static double StepsInYear { get { return 1239.0 / 114.0; } }
 
+        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,SuccessRate, ";
+
+        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12:F2},";
+
+        public static void WriteResult(StreamWriter sw,  
+            string country, int strategy, 
+            int eq, int bo, 
+            double wd, int rebalance, 
+            double trailAv, double trailMax, double trailMin, 
+            double wdAv, double wdMax, double wdMin, double successRate)
+        {
+            if (sw == null)
+            {
+                Console.WriteLine(ResultFormat,
+                                    country, strategy,
+                                    eq, bo,
+                                    wd, rebalance,
+                                    trailAv, trailMax, trailMin,
+                                    wdAv, wdMax, wdMin, successRate);
+            }
+            else
+            {
+                sw.WriteLine(ResultFormat,
+                                    country, strategy,
+                                    eq, bo,
+                                    wd, rebalance,
+                                    trailAv, trailMax, trailMin,
+                                    wdAv, wdMax, wdMin, successRate);
+            };
+        }
+     
         public static string ResultFileName(string prefix)
         {
             return String.Format("{0}-{1}{2}{3}-{4}{5}{6}.csv",
@@ -66,7 +96,7 @@ namespace FinancialModelB
         public static SweepParameters[] Factorize(Factor[] factors, List<Country> countries)
         {
             int[] SweepStrategies = { 1, 2, 3 };
-            Double[] SweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 2, 3.5, 4, 4.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
+            Double[] SweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
             int[] SweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] SweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] SweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
@@ -246,6 +276,9 @@ namespace FinancialModelB
             int doublerebalance,
             double doubleWorldWeight,
             string doubleWorldName,
+            int bins,
+            int cutoff,
+            double stepsInYear,
             string prefix)
         {
             this.Cycles = cycles;
@@ -254,6 +287,9 @@ namespace FinancialModelB
             this.DoubleRebalance = doublerebalance;
             this.DoubleWorldWeight = doubleWorldWeight;
             this.DoubleWorldName = doubleWorldName;
+            this.Bins = bins;
+            this.StepsInYear = stepsInYear;
+            this.CutoffPercent = cutoff;
             this.Prefix = prefix;
         }
 
@@ -264,6 +300,9 @@ namespace FinancialModelB
         public double DoubleWorldWeight { get; set; }
         public string DoubleWorldName { get; set; }
         public string Prefix { get; set; }
+        public int CutoffPercent { get; set; }
+        public int Bins { get; set; }
+        public double StepsInYear { get; set; }
 
         public static GlobalParams ReadParams(string fname)
         {
@@ -273,6 +312,9 @@ namespace FinancialModelB
 
             int    doublerebalance = cycles;
             double doubleWorldWeight = 1.0;
+            double stepsInYear = 10.8684;
+            int bins = 200;
+            int cutoff = 95;
             string doubleWorldName = "world.jpg";
             
             string prefix = "R";
@@ -307,6 +349,15 @@ namespace FinancialModelB
                     case "doubleWorldName":
                         doubleWorldName = values[1];
                         break;
+                    case "Bins":
+                        bins = int.Parse(values[1]);
+                        break;
+                    case "Cutoff":
+                        cutoff = int.Parse(values[1]);
+                        break;
+                    case "StepsInYear":
+                        stepsInYear = double.Parse(values[1]);
+                        break;
                 }
             }
 
@@ -317,6 +368,9 @@ namespace FinancialModelB
                 doublerebalance,
                 doubleWorldWeight,
                 doubleWorldName,
+                bins,
+                cutoff,
+                stepsInYear,
                 prefix);
                     
         }
@@ -412,9 +466,12 @@ namespace FinancialModelB
             }
 
             this.trailAverage /= (count * 1000000.0);
-            this.withdrawalAverage /= count;
             this.trailMax = trailMax / 1000000.0;
             this.trailMin = trailMin / 1000000.0;
+            this.withdrawalAverage /= count;
+            this.withdrawalAverage *= (Utils.StepsInYear / 1000.0);
+            this.withdrawalMax *= (Utils.StepsInYear / 1000.0);
+            this.withdrawalMin *= (Utils.StepsInYear / 1000.0);
         }
 
         public Model model;

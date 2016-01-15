@@ -58,7 +58,7 @@ namespace FinancialModelB
             if (ind < 0)
                 ind = ~ind;
 
-            return accumulatedProbability[ind].Midpoint / Params.PercentageScale;
+            return accumulatedProbability[ind].Midpoint / Utils.PercentageScale;
         }
 
         public static void PrepareDistribution(
@@ -105,6 +105,7 @@ namespace FinancialModelB
         }
 
         public static void Test(
+            GlobalParams globals,
             Distro distroEquities, Distro distroBonds, Distro distroBills, 
             Object printlock)
         {
@@ -114,35 +115,36 @@ namespace FinancialModelB
                     (t) =>
                     {
                         List<int> testValues = new List<int>();
-                        Distro distroTest = new Distro(Params.Bins);
+                        Distro distroTest = new Distro(globals.Bins);
                         switch (t)
                         {
                             case 1:
                                 for (int i = 0; i < 10000000; i++)
-                                    testValues.Add((int)(distroEquities.Play() * Params.PercentageScale));
+                                    testValues.Add((int)(distroEquities.Play() * Utils.PercentageScale));
                                 Distro.PrepareDistribution(
                                     testValues, distroTest, 
-                                    Params.Bins, "testEq.csv", printlock);
+                                    globals.Bins, "testEq.csv", printlock);
                                 break;
                             case 2:
                                 for (int i = 0; i < 10000000; i++)
-                                    testValues.Add((int)(distroBonds.Play() * Params.PercentageScale));
+                                    testValues.Add((int)(distroBonds.Play() * Utils.PercentageScale));
                                 Distro.PrepareDistribution(
-                                    testValues, distroTest, 
-                                    Params.Bins, "testBo.csv", printlock);
+                                    testValues, distroTest,
+                                    globals.Bins, "testBo.csv", printlock);
                                 break;
                             case 3:
                                 for (int i = 0; i < 10000000; i++)
-                                    testValues.Add((int)(distroBills.Play() * Params.PercentageScale));
+                                    testValues.Add((int)(distroBills.Play() * Utils.PercentageScale));
                                 Distro.PrepareDistribution(
-                                    testValues, distroTest, 
-                                    Params.Bins, "testBi.csv", printlock);
+                                    testValues, distroTest,
+                                    globals.Bins, "testBi.csv", printlock);
                                 break;
                         }
                     });
         }
 
         public static void Prepare(
+            GlobalParams globals,
             List<int> equityChanges, List<int> bondChanges,  List<int> billChanges,
             Distro distroEquities,   Distro distroBonds,     Distro distroBills,
             Object printlock)
@@ -153,23 +155,23 @@ namespace FinancialModelB
                     (t) =>
                     {
                         List<int> testValues = new List<int>();
-                        Distro distroTest = new Distro(Params.Bins);
+                        Distro distroTest = new Distro(globals.Bins);
                         switch (t)
                         {
                             case 1:
                                 Distro.PrepareDistribution(
                                     equityChanges, distroEquities,
-                                    Params.Bins, "DistroEquities.csv", printlock);
+                                    globals.Bins, "DistroEquities.csv", printlock);
                                 break;
                             case 2:
                                 Distro.PrepareDistribution(
                                     bondChanges, distroBonds,
-                                    Params.Bins, "DistroBonds.csv", printlock);
+                                    globals.Bins, "DistroBonds.csv", printlock);
                                 break;
                             case 3:
                                 Distro.PrepareDistribution(
                                     billChanges, distroBills,
-                                    Params.Bins, "DistroBills.csv", printlock);
+                                    globals.Bins, "DistroBills.csv", printlock);
                                 break;
                         }
                     });
