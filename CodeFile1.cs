@@ -295,4 +295,27 @@ namespace FinancialModelB
 
     }
 }
+
+                    /*
+                            sw.WriteLine(
+                                "{0},{1},{2},{3},{4},{5},{6},{7:F0},{8},{9},{10},{11},{12:F2},{13:F2},{14:F2},{15:F2},",
+                                m.Strategy,
+                                m.StrategyParameter1,
+                                m.StrategyParameter2,
+                                m.StrategyParameter3,
+                                m.Comment,
+                                m.Cycles,
+                                m.Repeats,
+                                m.StartSum / 1000000.0,
+                                m.StartEq,
+                                m.StartBo,
+                                m.YearlyWithdrawal,
+                                m.RebalanceEvery,
+                                result.Average() / 1000000.0,
+                                result.Max() / 1000000.0,
+                                result.Min() / 1000000.0,
+                                (double)((double)successes / (double)(successes + failures)));
+                     * */
+
+
 #endif

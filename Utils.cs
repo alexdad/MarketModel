@@ -71,6 +71,12 @@ namespace FinancialModelB
             int[] SweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] SweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             SweepParameters[] sweeps = new SweepParameters[1];
+            sweeps[0].Strategy = -1;
+            sweeps[0].Equity = -1;
+            sweeps[0].Bonds = -1;
+            sweeps[0].WorldShare = -1;
+            sweeps[0].WithdrawalRate = -1;
+            sweeps[0].Country = -1;
 
             int nCountries = countries.Count;
 
@@ -231,47 +237,111 @@ namespace FinancialModelB
         }
     }
 
+    public class GlobalParams
+    {
+        public GlobalParams(
+            int cycles, 
+            int repeats, 
+            int startsize, 
+            int doublerebalance,
+            double doubleWorldWeight,
+            string doubleWorldName,
+            string prefix)
+        {
+            this.Cycles = cycles;
+            this.Repeats = repeats;
+            this.StartSum = startsize;
+            this.DoubleRebalance = doublerebalance;
+            this.DoubleWorldWeight = doubleWorldWeight;
+            this.DoubleWorldName = doubleWorldName;
+            this.Prefix = prefix;
+        }
+
+        public int Cycles { get; set; }
+        public int Repeats { get; set; }
+        public int StartSum { get; set; }
+        public int DoubleRebalance { get; set; }
+        public double DoubleWorldWeight { get; set; }
+        public string DoubleWorldName { get; set; }
+        public string Prefix { get; set; }
+
+        public static GlobalParams ReadParams(string fname)
+        {
+            int cycles = 400;
+            int repeats = 1000;
+            int startsize = 4000000;
+
+            int    doublerebalance = cycles;
+            double doubleWorldWeight = 1.0;
+            string doubleWorldName = "world.jpg";
+            
+            string prefix = "R";
+
+            var sr = new StreamReader(File.OpenRead(fname));
+            while (!sr.EndOfStream)
+            {
+                var line = sr.ReadLine().Trim();
+                if (line.Length == 0 || line.StartsWith("#"))
+                    continue;
+                var values = line.Split(',');
+                switch(values[0].ToLower())
+                {
+                    case "prefix":
+                        prefix = values[1];
+                        break;
+                    case "cycles":
+                        cycles = int.Parse(values[1]);
+                        break;
+                    case "repeats":
+                        repeats = int.Parse(values[1]);
+                        break;
+                    case "startsum":
+                        startsize = int.Parse(values[1]);
+                        break;
+                    case "doublerebalance":
+                        doublerebalance = int.Parse(values[1]);
+                        break;
+                    case "doubleworldweight":
+                        doubleWorldWeight = double.Parse(values[1]);
+                        break;
+                    case "doubleWorldName":
+                        doubleWorldName = values[1];
+                        break;
+                }
+            }
+
+            return new GlobalParams(
+                cycles,
+                repeats,
+                startsize,
+                doublerebalance,
+                doubleWorldWeight,
+                doubleWorldName,
+                prefix);
+                    
+        }
+
+    }
     public class Model
     {
         public Model(
             int strategy, 
-            double par1,
-            double par2,
-            double par3, 
-            int cycles, 
-            int repeats,
-            int startSum, 
             int startEq, 
             int startBo,
             double yearlyWithdrawal,
-            int rebalanceEvery,
-            string comment)
+            int rebalanceEvery)
         {
             Strategy = strategy;
-            StrategyParameter1 = par1;
-            StrategyParameter2 = par2;
-            StrategyParameter3 = par3;
-            Cycles = cycles;
-            Repeats = repeats;
-            StartSum = startSum;
             StartEq = startEq;
             StartBo = startBo;
             YearlyWithdrawal = yearlyWithdrawal;
             RebalanceEvery = rebalanceEvery;
-            Comment = comment;
         }
         public int Strategy { get; set; }
-        public double StrategyParameter1 { get; set; }
-        public double StrategyParameter2 { get; set; }
-        public double StrategyParameter3 { get; set; }
-        public int Cycles { get; set; }
-        public int Repeats{ get; set; }
-        public int StartSum { get; set; }
         public int StartEq{ get; set; }
         public int StartBo{ get; set; }
         public double YearlyWithdrawal { get; set; }
         public int RebalanceEvery { get; set; }
-        public string Comment { get; set; }
         public static List<Model> ReadModels(string fname)
         {
             var sr = new StreamReader(File.OpenRead(fname));
@@ -283,24 +353,89 @@ namespace FinancialModelB
                     continue;
                 var values = line.Split(',');
                 list.Add(new Model(
-                    int.Parse(values[0]),
-                    double.Parse(values[1]),
-                    double.Parse(values[2]),
-                    double.Parse(values[3]),
-                    int.Parse(values[4]),
-                    int.Parse(values[5]),
-                    int.Parse(values[6]),
-                    int.Parse(values[7]),
-                    int.Parse(values[8]),
-                    double.Parse(values[9]),
-                    int.Parse(values[10]),
-                    values[11]));
+                    int.Parse(values[0]),      // strategy
+                    int.Parse(values[1]),      // eq
+                    int.Parse(values[2]),      // bo
+                    double.Parse(values[3]),   // wthdr
+                    int.Parse(values[4])));    // rebal 
             }
 
             return list;
         }
+
+        public static Model SweepModel(Model mp, SweepParameters sw)
+        {
+            Model m = new Model(mp.Strategy, mp.StartEq, mp.StartBo, mp.YearlyWithdrawal, mp.RebalanceEvery);
+            if (sw.Strategy >= 0)
+                m.Strategy = sw.Strategy;
+            if (sw.Equity >= 0)
+                m.StartEq = sw.Equity;
+            if (sw.Bonds >= 0)
+                m.StartBo = sw.Bonds;
+            if (sw.WithdrawalRate >= 0)
+                m.YearlyWithdrawal = sw.WithdrawalRate;
+
+            return m;
+        }
     }
 
 
+    public class ModelResult
+    {
+        public ModelResult(Model m, List<SingleRunResult> results)
+        {
+            this.model = m;
 
+            int failures = 0, successes = 0;
+            double successRate = Models.Check(results, ref failures, ref successes);
+            
+            trailSuccessRate = successRate;
+
+            trailAverage = withdrawalAverage = 0;
+            trailMin = withdrawalMin = double.MaxValue;
+            trailMax = withdrawalMax = double.MinValue;
+
+            int count = 0;
+            foreach(var sr in results)
+            {
+                trailAverage += sr.TrailingAmount;
+                trailMax = Math.Max(trailMax, sr.TrailingAmount);
+                trailMin = Math.Min(trailMin, sr.TrailingAmount);
+                withdrawalAverage += sr.WithdrawalAver;
+                withdrawalMax = Math.Max(withdrawalMax, sr.WithdrawalMax);
+                withdrawalMin = Math.Min(withdrawalMin, sr.WithdrawalMin);
+                count++;
+            }
+
+            this.trailAverage /= (count * 1000000.0);
+            this.withdrawalAverage /= count;
+            this.trailMax = trailMax / 1000000.0;
+            this.trailMin = trailMin / 1000000.0;
+        }
+
+        public Model model;
+        public double trailSuccessRate;
+        public double trailAverage;
+        public double trailMin;
+        public double trailMax;
+        public double withdrawalAverage;
+        public double withdrawalMin;
+        public double withdrawalMax;
+    }
+
+    public class SingleRunResult
+    {
+        public SingleRunResult(double trailingAmount, double withdrawalAver, double withdrawalMin, double withdrawalMax)
+        {
+            this.TrailingAmount = trailingAmount;
+            this.WithdrawalAver = withdrawalAver;
+            this.WithdrawalMax = withdrawalMax;
+            this.WithdrawalMin = withdrawalMin;
+        }
+
+        public double TrailingAmount { get; set; }
+        public double WithdrawalAver { get; set; }
+        public double WithdrawalMin { get; set; }
+        public double WithdrawalMax { get; set; }
+    }
 }

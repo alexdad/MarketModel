@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Text;
 using System.IO;
 using System.Threading.Tasks;
-
+using System.Collections.Concurrent;
 
 namespace FinancialModelB
 {
@@ -20,10 +20,18 @@ namespace FinancialModelB
             const int maxFactors = 5;
             Factor[] factors = new Factor[maxFactors];
             int cp = 0;
-            string resultPrefix = "R";
 
             for (int f = 0; f < factors.Length; f++)
                 factors[f] = Factor.None;
+
+            // Global params file
+            if (args.Length <= cp)
+            {
+                Console.Write("Usage: <params.csv> <countries.csv> <models.csv> [single|dual] [sweep N factor-1 ... factor-n]");
+                return;
+            }
+            GlobalParams globals = GlobalParams.ReadParams(args[cp++]);
+            string resultPrefix = "R_" + globals.Prefix;
 
             // Countries file
             if (args.Length <= cp)
@@ -46,19 +54,19 @@ namespace FinancialModelB
             {
                 if (args[cp].ToLower() == "single")
                 {
-                    Console.Write("The whole portfolio is managed as one thing");
+                    Console.WriteLine("The whole portfolio is managed as one thing");
                     portfolio = Portfolio.Single;
                     resultPrefix += "_Single";
                 }
                 else if (args[cp].ToLower() == "double")
                 {
                     portfolio = Portfolio.Double;
-                    Console.Write("The portfolio is composed of 2 separate parts: all countries except last, and last");
+                    Console.WriteLine("The portfolio is composed of 2 separate parts: all countries except last, and last");
                     resultPrefix += "_Double";
                 }
                 else
                 {
-                    Console.Write("First parameter can be only 'single' or 'double'. It defines portfolio composition");
+                    Console.WriteLine("First parameter can be only 'single' or 'double'. It defines portfolio composition");
                     return;
                 }
                 cp++;
@@ -69,7 +77,7 @@ namespace FinancialModelB
             {
                 if (args[cp].ToLower() != "sweep")
                 {
-                    Console.Write("This parameter can be only 'sweep'. It would request sweep by few listed parameters.");
+                    Console.WriteLine("This parameter can be only 'sweep'. It would request sweep by few listed parameters.");
                     return;
                 }
                 else
@@ -144,7 +152,9 @@ namespace FinancialModelB
                 Console.WriteLine("You requested to sweep across {0} combinations", sweeps.Length);
             }
 
+            // Run simulations
             Execute(
+                globals,
                 countries,
                 models,
                 portfolio,
@@ -154,6 +164,7 @@ namespace FinancialModelB
         }
 
         static void Execute(
+            GlobalParams globals,
             List<Country> countries,
             List<Model> models,
             Portfolio portfolio,
@@ -161,44 +172,78 @@ namespace FinancialModelB
             SweepParameters[] sweeps,
             string resFile)
         {
+            ConcurrentBag<ModelResult> modelResults = new ConcurrentBag<ModelResult>();
             Object printLock = new Object();
-            if (!File.Exists(resFile))
+
+            if (sweepMode == SweepMode.No)
             {
-                using (StreamWriter sw = new StreamWriter(resFile))
+                if (portfolio == Portfolio.Single)
                 {
-                    sw.WriteLine("Strategy,P1,P2,P3,Comment,Cycles,Repeats,StartSum,StartEq,StartBo,Withdrawal,Rebalance,Aver,Max,Min,SuccessRate, ");
+                    ExecuteSingle(globals, countries, models, modelResults, printLock);
+                }
+                else if (portfolio == Portfolio.Double)
+                {
+                    ExecuteDouble(globals, countries, models, modelResults, printLock);
+                }
+            }
+            else if (sweepMode == SweepMode.SweepNoCountry)
+            {
+                if (portfolio == Portfolio.Single)
+                {
+                    ExecuteSweepSingle(globals, countries, models, sweeps, modelResults, printLock);
+                }
+                else if (portfolio == Portfolio.Double)
+                {
+                    ExecuteSweepDouble(globals, countries, models, sweeps, modelResults, printLock);
+                }
+            }
+            else if (sweepMode == SweepMode.SweepAndCountry)
+            {
+                if (portfolio == Portfolio.Single)
+                {
+                    ExecuteSweepSingleByCountry(globals, countries, models, sweeps, modelResults, printLock);
+                }
+                else if (portfolio == Portfolio.Double)
+                {
+                    ExecuteSweepDoubleByCountry(globals, countries, models, sweeps, modelResults, printLock);
                 }
             }
 
-            if (sweepMode != SweepMode.No)
+            IEnumerable<ModelResult> sortedResults = modelResults.OrderBy(
+                mr => ((mr.model.Strategy * 100 + 
+                        mr.model.StartEq) * 100 + 
+                        mr.model.StartBo) * 100 + 
+                        mr.model.YearlyWithdrawal);
+
+            using (StreamWriter sw = new StreamWriter(resFile))
             {
-                if (portfolio == Portfolio.Single)
+                sw.WriteLine("Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,SuccessRate, ");
+                foreach(ModelResult mr in sortedResults)
                 {
-                    ExecuteSweepSingle(countries, models, sweepMode, sweeps, resFile, printLock);
-                }
-                else if (portfolio == Portfolio.Double)
-                {
-                    ExecuteSweepDouble(countries, models, sweepMode, sweeps, resFile, printLock);
-                }
-            }
-            else
-            {
-                if (portfolio == Portfolio.Single)
-                {
-                    ExecuteSingle(countries, models, resFile, printLock);
-                }
-                else if (portfolio == Portfolio.Double)
-                {
-                    ExecuteDouble(countries, models, resFile, printLock);
+                    sw.WriteLine(
+                        "{0},{1},{2},{3:F2},{4},{5:F2},{6:F2},{7:F2},{8:F2},{9:F2},{10:F2},{11:F2},",
+                        mr.model.Strategy,
+                        mr.model.StartEq,
+                        mr.model.StartBo,
+                        mr.model.YearlyWithdrawal,
+                        mr.model.RebalanceEvery,
+                        mr.trailAverage,
+                        mr.trailMax,
+                        mr.trailMin,
+                        mr.withdrawalAverage,
+                        mr.withdrawalMax,
+                        mr.withdrawalMin,
+                        mr.trailSuccessRate);
                 }
             }
         }
 
         // One run for a single portfolio
         static void ExecuteSingle(
+            GlobalParams globals,
             List<Country> countries,
             List<Model> models,
-            string resFile,
+            ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
             List<int> equityChanges = new List<int>();
@@ -225,45 +270,21 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<double> result = Models.RunSingle(
+                    List<SingleRunResult> result = Models.RunSingle(
+                        globals, 
                         m,
                         distroEquities, distroBonds, distroBills);
 
-                    int failures = 0, successes = 0;
-                    double successRate = Models.Check(result, ref failures, ref successes);
-
-                    lock (printlock)
-                    {
-                        using (StreamWriter sw = new StreamWriter(resFile, true))
-                        {
-                            sw.WriteLine(
-                                "{0},{1},{2},{3},{4},{5},{6},{7:F0},{8},{9},{10},{11},{12:F2},{13:F2},{14:F2},{15:F2},",
-                                m.Strategy,
-                                m.StrategyParameter1,
-                                m.StrategyParameter2,
-                                m.StrategyParameter3,
-                                m.Comment,
-                                m.Cycles,
-                                m.Repeats,
-                                m.StartSum / 1000000.0,
-                                m.StartEq,
-                                m.StartBo,
-                                m.YearlyWithdrawal,
-                                m.RebalanceEvery,
-                                result.Average() / 1000000.0,
-                                result.Max() / 1000000.0,
-                                result.Min() / 1000000.0,
-                                (double)((double)successes / (double)(successes + failures)));
-                        }
-                    }
+                    modelResults.Add(new ModelResult(m, result));
                 });
         }
 
         // One run for a 2-part portfolio
         static void ExecuteDouble(
+            GlobalParams globals,
             List<Country> countries,
             List<Model> models,
-            string resFile,
+            ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
             List<Country> world = new List<Country>();
@@ -308,61 +329,93 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<double> result = Models.RunDouble(
+                    List<SingleRunResult> result = Models.RunDouble(
+                        globals,
                         m,
                         (double)countries.Last().Weight / (double)(countries.Last().Weight + countries.First().Weight),
                         distroEquities, distroBonds, distroBills,
                         distroEquitiesW, distroBondsW, distroBillsW);
 
-                    int failures = 0, successes = 0;
-                    double successRate = Models.Check(result, ref failures, ref successes);
-
-                    lock (printlock)
-                    {
-                        using (StreamWriter sw = new StreamWriter(resFile, true))
-                        {
-                            sw.WriteLine(
-                                "{0},{1},{2},{3},{4},{5},{6},{7:F0},{8},{9},{10},{11},{12:F2},{13:F2},{14:F2},{15:F2},",
-                                m.Strategy,
-                                m.StrategyParameter1,
-                                m.StrategyParameter2,
-                                m.StrategyParameter3,
-                                m.Comment,
-                                m.Cycles,
-                                m.Repeats,
-                                m.StartSum / 1000000.0,
-                                m.StartEq,
-                                m.StartBo,
-                                m.YearlyWithdrawal,
-                                m.RebalanceEvery,
-                                result.Average() / 1000000.0,
-                                result.Max() / 1000000.0,
-                                result.Min() / 1000000.0,
-                                (double)((double)successes / (double)(successes + failures)));
-                        }
-                    }
+                    modelResults.Add(new ModelResult(m, result));
                 });
         }
 
         // Sweep run for a single portfolio
         static void ExecuteSweepSingle(
+            GlobalParams globals,
             List<Country> countries,
             List<Model> models,
-            SweepMode sweepMode,
             SweepParameters[] sweeps,
-            string resFile,
+            ConcurrentBag<ModelResult> modelResults,
+            Object printlock)
+        {
+            List<int> equityChanges = new List<int>();
+            List<int> bondChanges = new List<int>();
+            List<int> billChanges = new List<int>();
+
+            GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
+
+            Distro distroEquities = new Distro(Params.Bins);
+            Distro distroBonds = new Distro(Params.Bins);
+            Distro distroBills = new Distro(Params.Bins);
+
+            Distro.Prepare(
+                equityChanges, bondChanges, billChanges,
+                distroEquities, distroBonds, distroBills,
+                printlock);
+
+            Distro.Test(
+                distroEquities, distroBonds, distroBills,
+                printlock);
+
+            foreach(Model m in models)
+            {
+                ParallelLoopResult res1 = Parallel.ForEach(
+                    sweeps,
+                    (sw) =>
+                    {
+                        Model mm = Model.SweepModel(m, sw);
+                        List<SingleRunResult> result = Models.RunSingle(
+                            globals,
+                            mm,
+                            distroEquities, distroBonds, distroBills);
+
+                        modelResults.Add(new ModelResult(mm, result));
+                    });
+                }
+        }
+
+        // Sweep run for a double-part portfolio 
+        static void ExecuteSweepDouble(
+            GlobalParams globals,
+            List<Country> countries,
+            List<Model> models,
+            SweepParameters[] sweeps,
+            ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
 
         }
 
-        // Sweep run for a double-part portfolio 
-        static void ExecuteSweepDouble(
+        // Sweep run for a single portfolio by country
+        static void ExecuteSweepSingleByCountry(
+            GlobalParams globals,
             List<Country> countries,
             List<Model> models,
-            SweepMode sweepMode,
             SweepParameters[] sweeps,
-            string resFile,
+            ConcurrentBag<ModelResult> modelResults,
+            Object printlock)
+        {
+
+        }
+
+        // Sweep run for a double-part portfolio  by country
+        static void ExecuteSweepDoubleByCountry(
+            GlobalParams globals,
+            List<Country> countries,
+            List<Model> models,
+            SweepParameters[] sweeps,
+            ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
 

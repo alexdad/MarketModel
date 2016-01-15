@@ -11,10 +11,14 @@ namespace FinancialModelB
     public class Models
     {
         public static void RunStep(
-            int c, int r, ref double eq, ref double bo, ref double bi, 
-            ref double curWithdrawal, double initialWithdrawal,
-            ref double[] prior, ref List<double> withdrawals, ref List<double> results,
-            Model m, Distro distroEq, Distro distroBo, Distro distroBi)
+            int c, int r, 
+            ref double eq, ref double bo, ref double bi, 
+            ref double curWithdrawal, 
+            double initialWithdrawal,
+            ref double[] prior, 
+            ref List<double> withdrawals, 
+            Model m, 
+            Distro distroEq, Distro distroBo, Distro distroBi)
         {
             // Market play
             eq *= (1.0 + distroEq.Play());
@@ -31,54 +35,49 @@ namespace FinancialModelB
             else if (m.Strategy == 1)
                 curWithdrawal = initialWithdrawal;
 
+            double actualWithdrawal = (eq + bo + bi >= curWithdrawal ? curWithdrawal : eq + bo + bi);
+            double allocated = 0;
+
             // Withdrawal
             if (m.Strategy == 1 || m.Strategy == 3)
             {
                 // Strategy 1 = calculate withdrawal at start and keep const
                 // Strategy 3 = calculate withdrawal as percentage of average for the last 3 years
-                double missing = 0;
-                if (eq > 0)
+                if (bi > 0)
                 {
-                    eq -= (curWithdrawal * (eq / (eq + bo + bi)));
-                    if (eq < 0)
-                    {
-                        missing += -eq;
-                        eq = 0;
-                    }
+                    double d = Math.Min(bi, curWithdrawal * (bi / (eq + bo + bi)));
+                    allocated += d;
+                    bi -= d;
                 }
                 if (bo > 0)
                 {
-                    bo -= (curWithdrawal * (bo / (eq + bo + bi)));
-                    if (bo < 0)
-                    {
-                        missing += -bo;
-                        bo = 0;
-                    }
+                    double d = Math.Min(bo, curWithdrawal * (bo / (eq + bo + bi)));
+                    allocated += d;
+                    bo -= d;
                 }
-                if (bi > 0)
+                if (eq > 0)
                 {
-                    bi -= (curWithdrawal * (bi / (eq + bo + bi)));
-                    if (bi < 0)
-                    {
-                        missing += -bi;
-                        bi = 0;
-                    }
+                    double d = Math.Min(eq, curWithdrawal * (eq / (eq + bo + bi)));
+                    allocated += d;
+                    eq -= d;
                 }
 
-                if (missing > 0)
+                if (allocated < actualWithdrawal)
                 {
-                    double can = Math.Min(missing, eq);
-                    eq -= can;
-                    missing -= can;
-                    can = Math.Min(missing, bo);
-                    bo -= can;
-                    missing -= can;
-                    can = Math.Min(missing, bi);
-                    bi -= can;
-                    missing -= can;
+                    double d = Math.Min(bi, actualWithdrawal - allocated);
+                    bi -= d;
+                    allocated += d;
+
+                    d = Math.Min(bo, actualWithdrawal - allocated);
+                    bo -= d;
+                    allocated += d;
+
+                    d = Math.Min(eq, actualWithdrawal - allocated);
+                    eq -= d;
+                    allocated += d;
                 }
 
-                withdrawals.Add(curWithdrawal - missing);
+                withdrawals.Add(actualWithdrawal);
             }
             else if (m.Strategy == 2)
             {
@@ -106,43 +105,50 @@ namespace FinancialModelB
                 prior[y - 1] = prior[y];
             }
             prior[prior.Length - 1] = total;
-
         }
 
-        public static List<double> RunSingle(
+        public static List<SingleRunResult> RunSingle(
+            GlobalParams globals,
             Model m, 
             Distro distroEq, Distro distroBo, Distro distroBi)
         {
             int rebalanceEvery = m.RebalanceEvery;
-            double initialWithdrawal = m.StartSum * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
+            double initialWithdrawal = globals.StartSum * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
             double curWithdrawal = initialWithdrawal;
             double[] prior = new double[3 * (int)Params.StepsInYear];
 
-            List<double> withdrawals = new List<double>();
-            List<double> results = new List<double>();
-            for (int r = 0; r < m.Repeats; r++)
+            List<SingleRunResult> singleRunResults = new List<SingleRunResult>();
+
+            for (int r = 0; r < globals.Repeats; r++)
             {
-                double eq = m.StartSum * m.StartEq / 100;
-                double bo = m.StartSum * m.StartBo / 100;
-                double bi = m.StartSum * (100 - m.StartEq - m.StartBo) / 100;
+                double eq = globals.StartSum * m.StartEq / 100;
+                double bo = globals.StartSum * m.StartBo / 100;
+                double bi = globals.StartSum * (100 - m.StartEq - m.StartBo) / 100;
                 if (eq < 0 || bo < 0 || bi < 0)
                     throw new Exception("Bad parameters");
 
-                for (int c = 0; c < m.Cycles; c++)
+                List<double> withdrawals = new List<double>();
+                for (int c = 0; c < globals.Cycles; c++)
                 {
                     // Market play
                     RunStep(c, r, ref eq, ref bo, ref bi, 
                             ref curWithdrawal, initialWithdrawal,
-                            ref prior, ref withdrawals, ref results,
+                            ref prior, ref withdrawals, 
                             m, distroEq, distroBo, distroBi);
                 }
-                results.Add(eq + bo + bi);
-                // TODO keep withdrawals stats
+
+                singleRunResults.Add(
+                    new SingleRunResult(
+                        eq + bo + bi,
+                        withdrawals.Average(),
+                        withdrawals.Min(),
+                        withdrawals.Max()));
             }
-            return results;
+            return singleRunResults;
         }
 
-        public static List<double> RunDouble(
+        public static List<SingleRunResult> RunDouble(
+            GlobalParams globals,
             Model m, 
             double share2,
             Distro distroEq1, Distro distroBo1, Distro distroBi1,
@@ -150,22 +156,25 @@ namespace FinancialModelB
         {
             double withdrawal = m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
             int rebalanceEvery = m.RebalanceEvery;
-            double initialWithdrawal = m.StartSum * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
+            double initialWithdrawal = globals.StartSum * m.YearlyWithdrawal / 100.0 / Params.StepsInYear;
             double[] prior = new double[3 * (int)Params.StepsInYear];
             double curWithdrawal = initialWithdrawal;
 
-            List<double> results = new List<double>();
-            for (int r = 0; r < m.Repeats; r++)
+            List<SingleRunResult> results = new List<SingleRunResult>();
+
+            for (int r = 0; r < globals.Repeats; r++)
             {
-                double eq1 = (1.0 - share2) * m.StartSum * m.StartEq / 100;
-                double bo1 = (1.0 - share2) * m.StartSum * m.StartBo / 100;
-                double bi1 = (1.0 - share2) * m.StartSum * (100 - m.StartEq - m.StartBo) / 100;
+                double eq1 = (1.0 - share2) * globals.StartSum * m.StartEq / 100;
+                double bo1 = (1.0 - share2) * globals.StartSum * m.StartBo / 100;
+                double bi1 = (1.0 - share2) * globals.StartSum * (100 - m.StartEq - m.StartBo) / 100;
 
-                double eq2 = share2 * m.StartSum * m.StartEq / 100;
-                double bo2 = share2 * m.StartSum * m.StartBo / 100;
-                double bi2 = share2 * m.StartSum * (100 - m.StartEq - m.StartBo) / 100;
+                double eq2 = share2 * globals.StartSum * m.StartEq / 100;
+                double bo2 = share2 * globals.StartSum * m.StartBo / 100;
+                double bi2 = share2 * globals.StartSum * (100 - m.StartEq - m.StartBo) / 100;
 
-                for (int c = 0; c < m.Cycles; c++)
+                List<double> withdrawals = new List<double>();
+
+                for (int c = 0; c < globals.Cycles; c++)
                 {
                     // Market play
                     eq1 *= (1.0 + distroEq1.Play());
@@ -188,6 +197,7 @@ namespace FinancialModelB
 
                     double curWithdrawal1 = (1.0 - share2) * curWithdrawal;
                     double curWithdrawal2 = (share2) * curWithdrawal;
+                    //double actualWithdrawal1 = 0, actualWithdrawal2 = 0;
 
                     // Withdrawal
                     if (m.Strategy == 1 || m.Strategy == 3)
@@ -269,18 +279,24 @@ namespace FinancialModelB
                     prior[prior.Length - 1] = total1 + total2;
 
                 }
-                results.Add(eq1 + bo1 + bi1 + eq2 + bo2 + bi2);
+                results.Add( 
+                    new SingleRunResult(
+                        eq1 + bo1 + bi1 + eq2 + bo2 + bi2,
+                        0, //         withdrawals.Average(),
+                        0, // withdrawals.Min(),
+                        0)); // withdrawals.Max()));
+
             }
             return results;
         }
 
-        public static double Check(List<double> results, ref int failures, ref int successes)
+        public static double Check(List<SingleRunResult> results, ref int failures, ref int successes)
         {
             failures = 0; 
             successes = 0;
-            foreach (double r in results)
+            foreach (SingleRunResult r in results)
             {
-                if (r <= 1000)
+                if (r.TrailingAmount <= 1000)
                     failures++;
                 else
                     successes++;
@@ -289,43 +305,6 @@ namespace FinancialModelB
                 return 0.0;
             else
                 return (double)successes / (double)(successes + failures);
-        }
-
-        public static void Assess(Model m, List<double> results, string resFile)
-        {
-            int failures = 0, successes = 0;
-            double successRate = Check(results, ref failures , ref successes);
-
-            Console.WriteLine("{0} sucesses, {1} failures", successes, failures);
-            if (!File.Exists(resFile))
-            {
-                using (StreamWriter sw = new StreamWriter(resFile))
-                {
-                    sw.WriteLine("Strategy,P1,P2,P3,Comment,Cycles,Repeats,StartSum,StartEq,StartBo,Withdrawal,Rebalance,Aver,Max,Min,SuccessRate, ");
-                }
-            }
-            using (StreamWriter sw = new StreamWriter(resFile, true))
-            {
-                sw.WriteLine(
-                    "{0},{1},{2},{3},{4},{5},{6},{7:F0},{8},{9},{10},{11},{12:F2},{13:F2},{14:F2},{15:F2},",
-                    m.Strategy, 
-                    m.StrategyParameter1, 
-                    m.StrategyParameter2, 
-                    m.StrategyParameter3,
-                    m.Comment,
-                    m.Cycles,
-                    m.Repeats,
-                    m.StartSum/1000000.0,
-                    m.StartEq,
-                    m.StartBo,
-                    m.YearlyWithdrawal,
-                    m.RebalanceEvery,
-                    results.Average() / 1000000.0,
-                    results.Max() / 1000000.0,
-                    results.Min() / 1000000.0,
-                    (double)((double)successes / (double)(successes + failures)));
-            }
-
         }
     }
 }
