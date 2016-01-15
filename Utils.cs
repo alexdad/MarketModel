@@ -191,7 +191,7 @@ namespace FinancialModelB
 
     public class Country
     {
-        public Country(string fname, int bp, int tp, float le, float lbo, float lbi, int weight)
+        public Country(string fname, int bp, int tp, double le, double lbo, double lbi, int weight)
         {
             Filename = fname;
             BottomPower = bp;
@@ -329,19 +329,22 @@ namespace FinancialModelB
             int startEq, 
             int startBo,
             double yearlyWithdrawal,
-            int rebalanceEvery)
+            int rebalanceEvery,
+            string countryName)
         {
             Strategy = strategy;
             StartEq = startEq;
             StartBo = startBo;
             YearlyWithdrawal = yearlyWithdrawal;
             RebalanceEvery = rebalanceEvery;
+            CountryName = countryName;
         }
         public int Strategy { get; set; }
         public int StartEq{ get; set; }
         public int StartBo{ get; set; }
         public double YearlyWithdrawal { get; set; }
         public int RebalanceEvery { get; set; }
+        public string CountryName { get; set; } 
         public static List<Model> ReadModels(string fname)
         {
             var sr = new StreamReader(File.OpenRead(fname));
@@ -357,15 +360,16 @@ namespace FinancialModelB
                     int.Parse(values[1]),      // eq
                     int.Parse(values[2]),      // bo
                     double.Parse(values[3]),   // wthdr
-                    int.Parse(values[4])));    // rebal 
+                    int.Parse(values[4]),      // rebal 
+                    ""));                      // country name
             }
 
             return list;
         }
 
-        public static Model SweepModel(Model mp, SweepParameters sw)
+        public static Model SweepModel(Model mp, SweepParameters sw, Country c)
         {
-            Model m = new Model(mp.Strategy, mp.StartEq, mp.StartBo, mp.YearlyWithdrawal, mp.RebalanceEvery);
+            Model m = new Model(mp.Strategy, mp.StartEq, mp.StartBo, mp.YearlyWithdrawal, mp.RebalanceEvery, c.Filename);
             if (sw.Strategy >= 0)
                 m.Strategy = sw.Strategy;
             if (sw.Equity >= 0)

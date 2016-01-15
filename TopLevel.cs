@@ -217,11 +217,12 @@ namespace FinancialModelB
 
             using (StreamWriter sw = new StreamWriter(resFile))
             {
-                sw.WriteLine("Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,SuccessRate, ");
+                sw.WriteLine("Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,SuccessRate, ");
                 foreach(ModelResult mr in sortedResults)
                 {
                     sw.WriteLine(
-                        "{0},{1},{2},{3:F2},{4},{5:F2},{6:F2},{7:F2},{8:F2},{9:F2},{10:F2},{11:F2},",
+                        "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F2},{10:F2},{11:F2},{12:F2},",
+                        mr.model.CountryName,
                         mr.model.Strategy,
                         mr.model.StartEq,
                         mr.model.StartBo,
@@ -349,6 +350,8 @@ namespace FinancialModelB
             ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
+            Country c = new Country("", 0, 0, 0.0, 0.0, 0.0, 0);
+
             List<int> equityChanges = new List<int>();
             List<int> bondChanges = new List<int>();
             List<int> billChanges = new List<int>();
@@ -368,21 +371,23 @@ namespace FinancialModelB
                 distroEquities, distroBonds, distroBills,
                 printlock);
 
-            foreach(Model m in models)
-            {
-                ParallelLoopResult res1 = Parallel.ForEach(
-                    sweeps,
-                    (sw) =>
-                    {
-                        Model mm = Model.SweepModel(m, sw);
-                        List<SingleRunResult> result = Models.RunSingle(
-                            globals,
-                            mm,
-                            distroEquities, distroBonds, distroBills);
+            ParallelLoopResult res2 = Parallel.ForEach(
+                models,
+                (m) =>
+                {
+                    ParallelLoopResult res1 = Parallel.ForEach(
+                        sweeps,
+                        (sw) =>
+                        {
+                            Model mm = Model.SweepModel(m, sw, c);
+                            List<SingleRunResult> result = Models.RunSingle(
+                                globals,
+                                mm,
+                                distroEquities, distroBonds, distroBills);
 
-                        modelResults.Add(new ModelResult(mm, result));
-                    });
-                }
+                            modelResults.Add(new ModelResult(mm, result));
+                        });
+                });
         }
 
         // Sweep run for a double-part portfolio 
@@ -406,7 +411,52 @@ namespace FinancialModelB
             ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
+            foreach (var c in countries)
+                c.Weight = 0;
 
+            foreach (var c in countries)
+            {
+                c.Weight = 1;
+
+                List<int> equityChanges = new List<int>();
+                List<int> bondChanges = new List<int>();
+                List<int> billChanges = new List<int>();
+
+                GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
+
+                Distro distroEquities = new Distro(Params.Bins);
+                Distro distroBonds = new Distro(Params.Bins);
+                Distro distroBills = new Distro(Params.Bins);
+
+                Distro.Prepare(
+                    equityChanges, bondChanges, billChanges,
+                    distroEquities, distroBonds, distroBills,
+                    printlock);
+
+                Distro.Test(
+                    distroEquities, distroBonds, distroBills,
+                    printlock);
+
+                ParallelLoopResult res2 = Parallel.ForEach(
+                    models,
+                    (m) =>
+                    {
+                        ParallelLoopResult res1 = Parallel.ForEach(
+                            sweeps,
+                            (sw) =>
+                            {
+                                Model mm = Model.SweepModel(m, sw, c);
+                                List<SingleRunResult> result = Models.RunSingle(
+                                    globals,
+                                    mm,
+                                    distroEquities, distroBonds, distroBills);
+
+                                modelResults.Add(new ModelResult(mm, result));
+                            });
+                    });
+
+                c.Weight = 0;
+            }
         }
 
         // Sweep run for a double-part portfolio  by country
