@@ -446,12 +446,15 @@ namespace FinancialModelB
                             (sw) =>
                             {
                                 Model mm = Model.SweepModel(m, sw, c);
-                                List<SingleRunResult> result = Models.RunSingle(
-                                    globals,
-                                    mm,
-                                    distroEquities, distroBonds, distroBills);
+                                if (mm.StartEq + mm.StartBo <= 100)
+                                {
+                                    List<SingleRunResult> result = Models.RunSingle(
+                                        globals,
+                                        mm,
+                                        distroEquities, distroBonds, distroBills);
 
-                                modelResults.Add(new ModelResult(mm, result));
+                                    modelResults.Add(new ModelResult(mm, result));
+                                }
                             });
                     });
 
