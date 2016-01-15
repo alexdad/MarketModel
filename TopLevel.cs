@@ -14,7 +14,7 @@ namespace FinancialModelB
         static void Main(string[] args)
         {
             Portfolio portfolio = Portfolio.Single;
-            bool sweep = false;
+            SweepMode sweepMode = SweepMode.No;
             SweepParameters[] sweeps = new SweepParameters[1];
             int nFactors = 0;
             const int maxFactors = 5;
@@ -74,13 +74,13 @@ namespace FinancialModelB
                 }
                 else
                 {
-                    sweep = true;
+                    sweepMode = SweepMode.SweepNoCountry;
                     resultPrefix += "_Sweep";
                 }
                 cp++;
             }
 
-            if (sweep)
+            if (sweepMode != SweepMode.No)
             {
                 // Sweep factors counter
                 if (args.Length > cp)
@@ -105,7 +105,7 @@ namespace FinancialModelB
                     switch (args[cp].ToLower())
                     {
                         case "country":
-                            factors[i] = Factor.Country;
+                            sweepMode = SweepMode.SweepAndCountry;
                             resultPrefix += "_Country";
                             break;
                         case "strategy":
@@ -138,7 +138,7 @@ namespace FinancialModelB
 
 
             // Prepare sweep parameters
-            if (sweep)
+            if (sweepMode != SweepMode.No)
             {
                 sweeps = Params.Factorize(factors, countries);
                 Console.WriteLine("You requested to sweep across {0} combinations", sweeps.Length);
@@ -148,16 +148,16 @@ namespace FinancialModelB
                 countries,
                 models,
                 portfolio,
-                sweep,
+                sweepMode,
                 sweeps,
-                resultPrefix + ".csv");
+                Params.ResultFileName(resultPrefix));
         }
 
         static void Execute(
             List<Country> countries,
             List<Model> models,
             Portfolio portfolio,
-            bool sweepMode,
+            SweepMode sweepMode,
             SweepParameters[] sweeps,
             string resFile)
         {
@@ -170,15 +170,15 @@ namespace FinancialModelB
                 }
             }
 
-            if (sweepMode)
+            if (sweepMode != SweepMode.No)
             {
                 if (portfolio == Portfolio.Single)
                 {
-                    ExecuteSweepSingle(countries, models, sweeps, resFile, printLock);
+                    ExecuteSweepSingle(countries, models, sweepMode, sweeps, resFile, printLock);
                 }
                 else if (portfolio == Portfolio.Double)
                 {
-                    ExecuteSweepDouble(countries, models, sweeps, resFile, printLock);
+                    ExecuteSweepDouble(countries, models, sweepMode, sweeps, resFile, printLock);
                 }
             }
             else
@@ -194,7 +194,7 @@ namespace FinancialModelB
             }
         }
 
-        // One run for a simgle portfolio
+        // One run for a single portfolio
         static void ExecuteSingle(
             List<Country> countries,
             List<Model> models,
@@ -348,6 +348,7 @@ namespace FinancialModelB
         static void ExecuteSweepSingle(
             List<Country> countries,
             List<Model> models,
+            SweepMode sweepMode,
             SweepParameters[] sweeps,
             string resFile,
             Object printlock)
@@ -359,6 +360,7 @@ namespace FinancialModelB
         static void ExecuteSweepDouble(
             List<Country> countries,
             List<Model> models,
+            SweepMode sweepMode,
             SweepParameters[] sweeps,
             string resFile,
             Object printlock)

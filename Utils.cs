@@ -22,9 +22,15 @@ namespace FinancialModelB
         Sweep               // We run one series per each combination of sweep parameters
     };
 
+    public enum SweepMode         // Which parameters to seep upon?
+    {
+        No,                 // no sweep at all
+        SweepNoCountry,     // Sweep on some parameters, but not on country
+        SweepAndCountry     // Sweep on some parameters, including country
+    };
+
     public enum Factor
     {
-        Country,            // Try with each country (except World if Dual)
         Strategy,           // Try every strategy (1..3 for now)
         Withdrawal,         // Try every withdrawal rate of the predefined set
         WorldShare,         // Try every world component share of the predefined set
@@ -115,22 +121,6 @@ namespace FinancialModelB
                                 {
                                     sweeps[c] = oldSweeps[o];
                                     sweeps[c].WorldShare = SweepWorldShares[n];
-                                    c++;
-                                }
-                            }
-                        }
-                        break;
-                    case Factor.Country:
-                        {
-                            SweepParameters[] oldSweeps = sweeps;
-                            sweeps = new SweepParameters[oldSweeps.Length * nCountries];
-                            int c = 0;
-                            for (int o = 0; o < nCountries; o++)
-                            {
-                                for (int n = 0; n < nCountries; n++)
-                                {
-                                    sweeps[c] = oldSweeps[o];
-                                    sweeps[c].Country = n;
                                     c++;
                                 }
                             }
