@@ -52,13 +52,13 @@ namespace FinancialModelB
             // Portfolio Composition Mode
             if (args.Length > cp)
             {
-                if (args[cp].ToLower() == "single")
+                if (args[cp].ToLower().Trim() == "single")
                 {
                     Console.WriteLine("The whole portfolio is managed as one thing");
                     portfolio = Portfolio.Single;
                     resultPrefix += "_Single";
                 }
-                else if (args[cp].ToLower() == "double")
+                else if (args[cp].ToLower().Trim() == "double")
                 {
                     portfolio = Portfolio.Double;
                     Console.WriteLine("The portfolio is composed of 2 separate parts: all countries except last, and last");
@@ -75,7 +75,7 @@ namespace FinancialModelB
             // Sweep mode
             if (args.Length > cp)
             {
-                if (args[cp].ToLower() != "sweep")
+                if (args[cp].ToLower().Trim() != "sweep")
                 {
                     Console.WriteLine("This parameter can be only 'sweep'. It would request sweep by few listed parameters.");
                     return;
@@ -110,7 +110,7 @@ namespace FinancialModelB
                 for (int i = 0; i < nFactors; i++)
                 {
                     //Country| Strategy | Withdrawal |  DualShare |  Eq | Bo 
-                    switch (args[cp].ToLower())
+                    switch (args[cp].ToLower().Trim())
                     {
                         case "country":
                             sweepMode = SweepMode.SweepAndCountry;
@@ -148,7 +148,7 @@ namespace FinancialModelB
             // Prepare sweep parameters
             if (sweepMode != SweepMode.No)
             {
-                sweeps = Utils.Factorize(factors, countries);
+                sweeps = Utils.Factorize(globals, factors, countries);
                 Console.WriteLine("You requested to sweep across {0} combinations", sweeps.Length);
             }
 
@@ -297,23 +297,26 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
-                        globals, 
-                        m,
-                        distroEquities, distroBonds, distroBills);
-
-                    ModelResult mr = new ModelResult(m, result);
-                    modelResults.Add(mr);
-
-                    lock(printlock)
+                    if (m.Validate())
                     {
-                        Utils.WriteResult(null, 
-                            m.CountryName, m.Strategy, 
-                            m.StartEq, m.StartBo, 
-                            m.YearlyWithdrawal, m.RebalanceEvery,
-                            mr.trailAverage, mr.trailMax, mr.trailMin, 
-                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                            mr.trailSuccessRate);
+                        List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
+                            globals,
+                            m,
+                            distroEquities, distroBonds, distroBills);
+
+                        ModelResult mr = new ModelResult(m, result);
+                        modelResults.Add(mr);
+
+                        lock (printlock)
+                        {
+                            Utils.WriteResult(null,
+                                m.CountryName, m.Strategy,
+                                m.StartEq, m.StartBo,
+                                m.YearlyWithdrawal, m.RebalanceEvery,
+                                mr.trailAverage, mr.trailMax, mr.trailMin,
+                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                mr.trailSuccessRate);
+                        }
                     }
                 });
         }
@@ -332,7 +335,7 @@ namespace FinancialModelB
             List<Country> countries2 = new List<Country>();
             foreach (Country c in countries)
             {
-                if (string.Compare(c.Filename, globals.DoubleWorldName, true) == 0)
+                if (c.Filename.ToLower().Trim() == globals.DoubleWorldName.ToLower().Trim())
                 {
                     countries2.Add(c);
                     weight2 += c.Weight;
@@ -389,27 +392,29 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
-                        globals,
-                        m,
-                        weight2 / (weight1 + weight2),
-                        distroEquities1, distroBonds1, distroBills1,
-                        distroEquities2, distroBonds2, distroBills2);
-
-                    ModelResult mr = new ModelResult(m, result);
-                    modelResults.Add(mr);
-
-                    lock (printlock)
+                    if (m.Validate())
                     {
-                        Utils.WriteResult(null,
-                            m.CountryName, m.Strategy,
-                            m.StartEq, m.StartBo,
-                            m.YearlyWithdrawal, m.RebalanceEvery,
-                            mr.trailAverage, mr.trailMax, mr.trailMin,
-                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                            mr.trailSuccessRate);
-                    }
+                        List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
+                            globals,
+                            m,
+                            weight2 / (weight1 + weight2),
+                            distroEquities1, distroBonds1, distroBills1,
+                            distroEquities2, distroBonds2, distroBills2);
 
+                        ModelResult mr = new ModelResult(m, result);
+                        modelResults.Add(mr);
+
+                        lock (printlock)
+                        {
+                            Utils.WriteResult(null,
+                                m.CountryName, m.Strategy,
+                                m.StartEq, m.StartBo,
+                                m.YearlyWithdrawal, m.RebalanceEvery,
+                                mr.trailAverage, mr.trailMax, mr.trailMin,
+                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                mr.trailSuccessRate);
+                        }
+                    }
                 });
         }
 
@@ -459,23 +464,26 @@ namespace FinancialModelB
                         (sw) =>
                         {
                             Model mm = Model.SweepModel(m, sw, c);
-                            List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
-                                globals,
-                                mm,
-                                distroEquities, distroBonds, distroBills);
-
-                            ModelResult mr = new ModelResult(mm, result);
-                            modelResults.Add(mr);
-
-                            lock (printlock)
+                            if (mm.Validate())
                             {
-                                Utils.WriteResult(null,
-                                    m.CountryName, m.Strategy,
-                                    m.StartEq, m.StartBo,
-                                    m.YearlyWithdrawal, m.RebalanceEvery,
-                                    mr.trailAverage, mr.trailMax, mr.trailMin,
-                                    mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                    mr.trailSuccessRate);
+                                List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
+                                    globals,
+                                    mm,
+                                    distroEquities, distroBonds, distroBills);
+
+                                ModelResult mr = new ModelResult(mm, result);
+                                modelResults.Add(mr);
+
+                                lock (printlock)
+                                {
+                                    Utils.WriteResult(null,
+                                        mm.CountryName, mm.Strategy,
+                                        mm.StartEq, mm.StartBo,
+                                        mm.YearlyWithdrawal, mm.RebalanceEvery,
+                                        mr.trailAverage, mr.trailMax, mr.trailMin,
+                                        mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                        mr.trailSuccessRate);
+                                }
                             }
                         });
                 });
@@ -490,7 +498,100 @@ namespace FinancialModelB
             ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
+            // Separate countries into 2 groups: 2=WORLD, 1=all others
+            double weight1 = 0.0, weight2 = 0.0;
+            List<Country> countries1 = new List<Country>();
+            List<Country> countries2 = new List<Country>();
+            foreach (Country c in countries)
+            {
+                if (c.Filename.ToLower().Trim() == globals.DoubleWorldName.ToLower().Trim())
+                {
+                    countries2.Add(c);
+                    weight2 += c.Weight;
+                }
+                else
+                {
+                    countries1.Add(c);
+                    weight1 += c.Weight;
+                }
+            }
+            if (weight1 <= 0 || weight2 <= 0)
+                throw new Exception("Cannot find the world or others");
 
+            // Group2 is just the World
+            List<int> equityChanges2 = new List<int>();
+            List<int> bondChanges2 = new List<int>();
+            List<int> billChanges2 = new List<int>();
+
+            GraphAcquierer.Acquire(countries2, equityChanges2, bondChanges2, billChanges2, printlock);
+
+            Distro distroEquities2 = new Distro(globals.Bins);
+            Distro distroBonds2 = new Distro(globals.Bins);
+            Distro distroBills2 = new Distro(globals.Bins);
+
+            Distro.Prepare(
+                globals,
+                equityChanges2, bondChanges2, billChanges2,
+                distroEquities2, distroBonds2, distroBills2,
+                printlock);
+
+            // Group1 is all except World
+            List<int> equityChanges1 = new List<int>();
+            List<int> bondChanges1 = new List<int>();
+            List<int> billChanges1 = new List<int>();
+
+            GraphAcquierer.Acquire(countries1, equityChanges1, bondChanges1, billChanges1, printlock);
+
+            Distro distroEquities1 = new Distro(globals.Bins);
+            Distro distroBonds1 = new Distro(globals.Bins);
+            Distro distroBills1 = new Distro(globals.Bins);
+
+            Distro.Prepare(
+                globals,
+                equityChanges1, bondChanges1, billChanges1,
+                distroEquities1, distroBonds1, distroBills1,
+                printlock);
+
+            lock (printlock)
+            {
+                Console.WriteLine(Utils.ResultHeader);
+            }
+
+            ParallelLoopResult res2 = Parallel.ForEach(
+                models,
+                (m) =>
+                {
+                    ParallelLoopResult res1 = Parallel.ForEach(
+                        sweeps,
+                        (sw) =>
+                        {
+                            Country nullCountry = new Country();
+                            Model mm = Model.SweepModel(m, sw, nullCountry);
+                            if (mm.Validate())
+                            {
+                                List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
+                                    globals,
+                                    mm,
+                                    weight2 / (weight1 + weight2),
+                                    distroEquities1, distroBonds1, distroBills1,
+                                    distroEquities2, distroBonds2, distroBills2);
+
+                                ModelResult mr = new ModelResult(mm, result);
+                                modelResults.Add(mr);
+
+                                lock (printlock)
+                                {
+                                    Utils.WriteResult(null,
+                                        mm.CountryName, mm.Strategy,
+                                        mm.StartEq, mm.StartBo,
+                                        mm.YearlyWithdrawal, mm.RebalanceEvery,
+                                        mr.trailAverage, mr.trailMax, mr.trailMin,
+                                        mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                        mr.trailSuccessRate);
+                                }
+                            }
+                        });
+                });
         }
 
         // Sweep run for a single portfolio by country
@@ -544,27 +645,30 @@ namespace FinancialModelB
                             (sw) =>
                             {
                                 Model mm = Model.SweepModel(m, sw, c);
-                                if (mm.StartEq + mm.StartBo <= 100)
+                                if (mm.Validate())
                                 {
-                                    List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
-                                        globals,
-                                        mm,
-                                        distroEquities, distroBonds, distroBills);
-
-                                    ModelResult mr = new ModelResult(mm, result);
-                                    modelResults.Add(mr);
-
-                                    lock (printlock)
+                                    if (mm.StartEq + mm.StartBo <= 100)
                                     {
-                                        Utils.WriteResult(null,
-                                            mm.CountryName, mm.Strategy,
-                                            mm.StartEq, mm.StartBo,
-                                            mm.YearlyWithdrawal, mm.RebalanceEvery,
-                                            mr.trailAverage, mr.trailMax, mr.trailMin,
-                                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                            mr.trailSuccessRate);
-                                    }
+                                        List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
+                                            globals,
+                                            mm,
+                                            distroEquities, distroBonds, distroBills);
 
+                                        ModelResult mr = new ModelResult(mm, result);
+                                        modelResults.Add(mr);
+
+                                        lock (printlock)
+                                        {
+                                            Utils.WriteResult(null,
+                                                mm.CountryName, mm.Strategy,
+                                                mm.StartEq, mm.StartBo,
+                                                mm.YearlyWithdrawal, mm.RebalanceEvery,
+                                                mr.trailAverage, mr.trailMax, mr.trailMin,
+                                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                                mr.trailSuccessRate);
+                                        }
+
+                                    }
                                 }
                             });
                     });
@@ -586,7 +690,7 @@ namespace FinancialModelB
             List<Country> countries2 = new List<Country>();
             foreach (Country c in countries)
             {
-                if (string.Compare(c.Filename, globals.DoubleWorldName, true) == 0)
+                if (c.Filename.ToLower().Trim() == globals.DoubleWorldName.ToLower().Trim())
                 {
                     countries2.Add(c);
                     countries2.Last().Weight = 1;
@@ -647,27 +751,30 @@ namespace FinancialModelB
                             (sw) =>
                             {
                                 Model mm = Model.SweepModel(m, sw, c);
-                                if (mm.StartEq + mm.StartBo <= 100)
+                                if (mm.Validate())
                                 {
-                                    List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
-                                        globals,
-                                        mm,
-                                        (double)globals.DoubleWorldWeight / (double)(globals.DoubleWorldWeight + globals.DoubleCountryWeight),
-                                        distroEquities1, distroBonds1, distroBills1,
-                                        distroEquities2, distroBonds2, distroBills2);
-
-                                    ModelResult mr = new ModelResult(mm, result);
-                                    modelResults.Add(mr);
-
-                                    lock (printlock)
+                                    if (mm.StartEq + mm.StartBo <= 100)
                                     {
-                                        Utils.WriteResult(null,
-                                            mm.CountryName, mm.Strategy,
-                                            mm.StartEq, mm.StartBo,
-                                            mm.YearlyWithdrawal, mm.RebalanceEvery,
-                                            mr.trailAverage, mr.trailMax, mr.trailMin,
-                                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                            mr.trailSuccessRate);
+                                        List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
+                                            globals,
+                                            mm,
+                                            (double)globals.DoubleWorldWeight / (double)(globals.DoubleWorldWeight + globals.DoubleCountryWeight),
+                                            distroEquities1, distroBonds1, distroBills1,
+                                            distroEquities2, distroBonds2, distroBills2);
+
+                                        ModelResult mr = new ModelResult(mm, result);
+                                        modelResults.Add(mr);
+
+                                        lock (printlock)
+                                        {
+                                            Utils.WriteResult(null,
+                                                mm.CountryName, mm.Strategy,
+                                                mm.StartEq, mm.StartBo,
+                                                mm.YearlyWithdrawal, mm.RebalanceEvery,
+                                                mr.trailAverage, mr.trailMax, mr.trailMin,
+                                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                                mr.trailSuccessRate);
+                                        }
                                     }
                                 }
                             });

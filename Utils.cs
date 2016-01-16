@@ -93,13 +93,16 @@ namespace FinancialModelB
                 DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         }
 
-        public static SweepParameters[] Factorize(Factor[] factors, List<Country> countries)
+        public static SweepParameters[] Factorize(GlobalParams globals, Factor[] factors, List<Country> countries)
         {
             int[] SweepStrategies = { 1, 2, 3 };
-            Double[] SweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
-            int[] SweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
-            int[] SweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
-            int[] SweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            // TODO - make it readable
+            //Double[] SweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
+            //Double[] SweepWithdrawalRates = {  2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6 };
+            //int[] SweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            //int[] SweepEquities = {  30, 40, 50, 60, 70, 80, 90, 100 };
+            //int[] SweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            //int[] SweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             SweepParameters[] sweeps = new SweepParameters[1];
             sweeps[0].Strategy = -1;
             sweeps[0].Equity = -1;
@@ -133,14 +136,14 @@ namespace FinancialModelB
                     case Factor.Withdrawal:
                         {
                             SweepParameters[] oldSweeps = sweeps;
-                            sweeps = new SweepParameters[oldSweeps.Length * SweepWithdrawalRates.Length];
+                            sweeps = new SweepParameters[oldSweeps.Length * globals.SweepWithdrawalRates.Length];
                             int c = 0;
                             for (int o = 0; o < oldSweeps.Length; o++)
                             {
-                                for (int n = 0; n < SweepWithdrawalRates.Length; n++)
+                                for (int n = 0; n < globals.SweepWithdrawalRates.Length; n++)
                                 {
                                     sweeps[c] = oldSweeps[o];
-                                    sweeps[c].WithdrawalRate = SweepWithdrawalRates[n];
+                                    sweeps[c].WithdrawalRate = globals.SweepWithdrawalRates[n];
                                     c++;
                                 }
                             }
@@ -149,14 +152,14 @@ namespace FinancialModelB
                     case Factor.WorldShare:
                         {
                             SweepParameters[] oldSweeps = sweeps;
-                            sweeps = new SweepParameters[oldSweeps.Length * SweepWorldShares.Length];
+                            sweeps = new SweepParameters[oldSweeps.Length * globals.SweepWorldShares.Length];
                             int c = 0;
                             for (int o = 0; o < oldSweeps.Length; o++)
                             {
-                                for (int n = 0; n < SweepWorldShares.Length; n++)
+                                for (int n = 0; n < globals.SweepWorldShares.Length; n++)
                                 {
                                     sweeps[c] = oldSweeps[o];
-                                    sweeps[c].WorldShare = SweepWorldShares[n];
+                                    sweeps[c].WorldShare = globals.SweepWorldShares[n];
                                     c++;
                                 }
                             }
@@ -165,14 +168,14 @@ namespace FinancialModelB
                     case Factor.Equity:
                         {
                             SweepParameters[] oldSweeps = sweeps;
-                            sweeps = new SweepParameters[oldSweeps.Length * SweepEquities.Length];
+                            sweeps = new SweepParameters[oldSweeps.Length * globals.SweepEquities.Length];
                             int c = 0;
                             for (int o = 0; o < oldSweeps.Length; o++)
                             {
-                                for (int n = 0; n < SweepEquities.Length; n++)
+                                for (int n = 0; n < globals.SweepEquities.Length; n++)
                                 {
                                     sweeps[c] = oldSweeps[o];
-                                    sweeps[c].Equity = SweepEquities[n];
+                                    sweeps[c].Equity = globals.SweepEquities[n];
                                     c++;
                                 }
                             }
@@ -181,14 +184,14 @@ namespace FinancialModelB
                     case Factor.Bonds:
                         {
                             SweepParameters[] oldSweeps = sweeps;
-                            sweeps = new SweepParameters[oldSweeps.Length * SweepBonds.Length];
+                            sweeps = new SweepParameters[oldSweeps.Length * globals.SweepBonds.Length];
                             int c = 0;
                             for (int o = 0; o < oldSweeps.Length; o++)
                             {
-                                for (int n = 0; n < SweepBonds.Length; n++)
+                                for (int n = 0; n < globals.SweepBonds.Length; n++)
                                 {
                                     sweeps[c] = oldSweeps[o];
-                                    sweeps[c].Bonds = SweepBonds[n];
+                                    sweeps[c].Bonds = globals.SweepBonds[n];
                                     c++;
                                 }
                             }
@@ -230,6 +233,16 @@ namespace FinancialModelB
             LastBond = lbo;
             LastBill = lbi;
             Weight = weight;
+        }
+        public Country()
+        {
+            Filename = "";
+            BottomPower = -1;
+            TopPower = -1;
+            LastEquity = -1;
+            LastBond = -1;
+            LastBill = -1;
+            Weight = -1;
         }
         public string Filename { get; set; }
         public int BottomPower { get; set; }
@@ -280,7 +293,11 @@ namespace FinancialModelB
             int bins,
             int cutoff,
             double stepsInYear,
-            string prefix)
+            string prefix,
+            double[] sweepWithdrawalRates,
+            int[] sweepWorldShares,
+            int[] sweepEquities,
+            int[] sweepBonds)
         {
             this.Cycles = cycles;
             this.Repeats = repeats;
@@ -293,6 +310,10 @@ namespace FinancialModelB
             this.StepsInYear = stepsInYear;
             this.CutoffPercent = cutoff;
             this.Prefix = prefix;
+            this.SweepWithdrawalRates = sweepWithdrawalRates;
+            this.SweepWorldShares = sweepWorldShares;
+            this.SweepEquities = sweepEquities;
+            this.SweepBonds = sweepBonds;
         }
 
         public int Cycles { get; set; }
@@ -306,6 +327,10 @@ namespace FinancialModelB
         public int CutoffPercent { get; set; }
         public int Bins { get; set; }
         public double StepsInYear { get; set; }
+        public Double[] SweepWithdrawalRates { get; set; }
+        public int[] SweepWorldShares { get; set; }
+        public int[] SweepEquities { get; set; }
+        public int[] SweepBonds { get; set; }
 
         public static GlobalParams ReadParams(string fname)
         {
@@ -320,6 +345,11 @@ namespace FinancialModelB
             int bins = 200;
             int cutoff = 95;
             string doubleWorldName = "world.jpg";
+            Double[] sweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
+            int[] sweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            int[] sweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            int[] sweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+
             
             string prefix = "R";
 
@@ -330,7 +360,7 @@ namespace FinancialModelB
                 if (line.Length == 0 || line.StartsWith("#"))
                     continue;
                 var values = line.Split(',');
-                switch(values[0].ToLower())
+                switch (values[0].ToLower().Trim())
                 {
                     case "prefix":
                         prefix = values[1];
@@ -344,26 +374,46 @@ namespace FinancialModelB
                     case "startsum":
                         startsize = int.Parse(values[1]);
                         break;
+                    case "doubleworldname":
+                        doubleWorldName = values[1];
+                        break;
                     case "doublerebalance":
                         doublerebalance = int.Parse(values[1]);
-                        break;
-                    case "doublecountryweight":
-                        doubleCountryWeight = int.Parse(values[1]);
                         break;
                     case "doubleworldweight":
                         doubleWorldWeight = int.Parse(values[1]);
                         break;
-                    case "doubleWorldName":
-                        doubleWorldName = values[1];
+                    case "doublecountryweight":
+                        doubleCountryWeight = int.Parse(values[1]);
                         break;
-                    case "Bins":
+                    case "bins":
                         bins = int.Parse(values[1]);
                         break;
-                    case "Cutoff":
+                    case "cutoff":
                         cutoff = int.Parse(values[1]);
                         break;
-                    case "StepsInYear":
+                    case "stepsinyear":
                         stepsInYear = double.Parse(values[1]);
+                        break;
+                    case "sweepwithdrawalrates":
+                        sweepWithdrawalRates = new double[values.Length - 2];
+                        for (int i = 1; i < values.Length-1; i++ )
+                            sweepWithdrawalRates[i-1] = double.Parse(values[i]);
+                        break;
+                    case "sweepworldshares":
+                        sweepWorldShares = new int[values.Length - 2];
+                        for (int i = 1; i < values.Length-1; i++ )
+                            sweepWorldShares[i-1] = int.Parse(values[i]);
+                        break;
+                    case "sweepequities":
+                        sweepEquities = new int[values.Length - 2];
+                        for (int i = 1; i < values.Length-1; i++ )
+                            sweepEquities[i-1] = int.Parse(values[i]);
+                        break;
+                    case "sweepbonds":
+                        sweepBonds = new int[values.Length - 2];
+                        for (int i = 1; i < values.Length-1; i++ )
+                            sweepBonds[i-1] = int.Parse(values[i]);
                         break;
                 }
             }
@@ -379,7 +429,11 @@ namespace FinancialModelB
                 bins,
                 cutoff,
                 stepsInYear,
-                prefix);
+                prefix,
+                sweepWithdrawalRates,
+                sweepWorldShares,
+                sweepEquities,
+                sweepBonds);
                     
         }
 
@@ -442,6 +496,23 @@ namespace FinancialModelB
                 m.YearlyWithdrawal = sw.WithdrawalRate;
 
             return m;
+        }
+
+        public bool Validate()
+        {
+            if (this.StartEq < 0 || this.StartEq > 100 ||
+                this.StartBo < 0 || this.StartBo > 100)
+                return false;
+            if (this.StartEq + this.StartBo > 100)
+                return false;
+            if (this.Strategy < 1 || this.Strategy > 3)
+                return false;
+            if (this.YearlyWithdrawal < 0 || this.YearlyWithdrawal > 100)
+                return false;
+            if (this.RebalanceEvery < 0)
+                return false;
+
+            return true;
         }
     }
 
