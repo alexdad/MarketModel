@@ -297,7 +297,7 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<SingleRunResult> result = Models.RunSingle(
+                    List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
                         globals, 
                         m,
                         distroEquities, distroBonds, distroBills);
@@ -326,43 +326,58 @@ namespace FinancialModelB
             ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
-            List<Country> world = new List<Country>();
-            world.Add(countries.Last());
+            // Separate countries into 2 groups: 2=WORLD, 1=all others
+            double weight1 = 0.0, weight2 = 0.0; 
+            List<Country> countries1 = new List<Country>();
+            List<Country> countries2 = new List<Country>();
+            foreach (Country c in countries)
+            {
+                if (string.Compare(c.Filename, globals.DoubleWorldName, true) == 0)
+                {
+                    countries2.Add(c);
+                    weight2 += c.Weight;
+                }
+                else
+                {
+                    countries1.Add(c);
+                    weight1 += c.Weight;
+                }
+            }
+            if (weight1 <= 0 || weight2 <= 0)
+                throw new Exception("Cannot find the world or others"); 
 
-            List<int> equityChangesW = new List<int>();
-            List<int> bondChangesW = new List<int>();
-            List<int> billChangesW = new List<int>();
+            // Group2 is just the World
+            List<int> equityChanges2 = new List<int>();
+            List<int> bondChanges2 = new List<int>();
+            List<int> billChanges2 = new List<int>();
 
-            GraphAcquierer.Acquire(world, equityChangesW, bondChangesW, billChangesW, printlock);
+            GraphAcquierer.Acquire(countries2, equityChanges2, bondChanges2, billChanges2, printlock);
 
-            Distro distroEquitiesW = new Distro(globals.Bins);
-            Distro distroBondsW = new Distro(globals.Bins);
-            Distro distroBillsW = new Distro(globals.Bins);
+            Distro distroEquities2 = new Distro(globals.Bins);
+            Distro distroBonds2 = new Distro(globals.Bins);
+            Distro distroBills2 = new Distro(globals.Bins);
 
             Distro.Prepare(
                 globals,
-                equityChangesW, bondChangesW, billChangesW,
-                distroEquitiesW, distroBondsW, distroBillsW,
+                equityChanges2, bondChanges2, billChanges2,
+                distroEquities2, distroBonds2, distroBills2,
                 printlock);
 
+            // Group1 is all except World
+            List<int> equityChanges1 = new List<int>();
+            List<int> bondChanges1 = new List<int>();
+            List<int> billChanges1 = new List<int>();
 
-            List<Country> other = countries;
-            other.RemoveAt(countries.Count - 1);
+            GraphAcquierer.Acquire(countries1, equityChanges1, bondChanges1, billChanges1, printlock);
 
-            List<int> equityChanges = new List<int>();
-            List<int> bondChanges = new List<int>();
-            List<int> billChanges = new List<int>();
-
-            GraphAcquierer.Acquire(countries, equityChanges, bondChanges, billChanges, printlock);
-
-            Distro distroEquities = new Distro(globals.Bins);
-            Distro distroBonds = new Distro(globals.Bins);
-            Distro distroBills = new Distro(globals.Bins);
+            Distro distroEquities1 = new Distro(globals.Bins);
+            Distro distroBonds1 = new Distro(globals.Bins);
+            Distro distroBills1 = new Distro(globals.Bins);
 
             Distro.Prepare(
                 globals,
-                equityChanges, bondChanges, billChanges,
-                distroEquities, distroBonds, distroBills,
+                equityChanges1, bondChanges1, billChanges1,
+                distroEquities1, distroBonds1, distroBills1,
                 printlock);
 
             lock (printlock)
@@ -374,12 +389,12 @@ namespace FinancialModelB
                 models,
                 (m) =>
                 {
-                    List<SingleRunResult> result = Models.RunDouble(
+                    List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
                         globals,
                         m,
-                        (double)countries.Last().Weight / (double)(countries.Last().Weight + countries.First().Weight),
-                        distroEquities, distroBonds, distroBills,
-                        distroEquitiesW, distroBondsW, distroBillsW);
+                        weight2 / (weight1 + weight2),
+                        distroEquities1, distroBonds1, distroBills1,
+                        distroEquities2, distroBonds2, distroBills2);
 
                     ModelResult mr = new ModelResult(m, result);
                     modelResults.Add(mr);
@@ -444,7 +459,7 @@ namespace FinancialModelB
                         (sw) =>
                         {
                             Model mm = Model.SweepModel(m, sw, c);
-                            List<SingleRunResult> result = Models.RunSingle(
+                            List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
                                 globals,
                                 mm,
                                 distroEquities, distroBonds, distroBills);
@@ -531,7 +546,7 @@ namespace FinancialModelB
                                 Model mm = Model.SweepModel(m, sw, c);
                                 if (mm.StartEq + mm.StartBo <= 100)
                                 {
-                                    List<SingleRunResult> result = Models.RunSingle(
+                                    List<SingleRunResult> result = Models.RunSinglePortfolioExperiment(
                                         globals,
                                         mm,
                                         distroEquities, distroBonds, distroBills);
@@ -567,7 +582,99 @@ namespace FinancialModelB
             ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
+            // Group2 is just the World
+            List<Country> countries2 = new List<Country>();
+            foreach (Country c in countries)
+            {
+                if (string.Compare(c.Filename, globals.DoubleWorldName, true) == 0)
+                {
+                    countries2.Add(c);
+                    countries2.Last().Weight = 1;
+                }
+            }
 
+            List<int> equityChanges2 = new List<int>();
+            List<int> bondChanges2 = new List<int>();
+            List<int> billChanges2 = new List<int>();
+
+            GraphAcquierer.Acquire(countries2, equityChanges2, bondChanges2, billChanges2, printlock);
+
+            Distro distroEquities2 = new Distro(globals.Bins);
+            Distro distroBonds2 = new Distro(globals.Bins);
+            Distro distroBills2 = new Distro(globals.Bins);
+
+            Distro.Prepare(
+                globals,
+                equityChanges2, bondChanges2, billChanges2,
+                distroEquities2, distroBonds2, distroBills2,
+                printlock);
+
+            // Now enumerate countries; Group1 each time will carry just one
+            foreach (var c in countries)
+            {
+                List<Country> countries1 = new List<Country>();
+                countries1.Add(c);
+                countries1.Last().Weight = 1;
+
+                // Group1 is just one country
+                List<int> equityChanges1 = new List<int>();
+                List<int> bondChanges1 = new List<int>();
+                List<int> billChanges1 = new List<int>();
+
+                GraphAcquierer.Acquire(countries1, equityChanges1, bondChanges1, billChanges1, printlock);
+
+                Distro distroEquities1 = new Distro(globals.Bins);
+                Distro distroBonds1 = new Distro(globals.Bins);
+                Distro distroBills1 = new Distro(globals.Bins);
+
+                Distro.Prepare(
+                    globals,
+                    equityChanges1, bondChanges1, billChanges1,
+                    distroEquities1, distroBonds1, distroBills1,
+                    printlock);
+
+                lock (printlock)
+                {
+                    Console.WriteLine(Utils.ResultHeader);
+                }
+
+                ParallelLoopResult res2 = Parallel.ForEach(
+                    models,
+                    (m) =>
+                    {
+                        ParallelLoopResult res1 = Parallel.ForEach(
+                            sweeps,
+                            (sw) =>
+                            {
+                                Model mm = Model.SweepModel(m, sw, c);
+                                if (mm.StartEq + mm.StartBo <= 100)
+                                {
+                                    List<SingleRunResult> result = Models.RunDoublePortfolioExperiment(
+                                        globals,
+                                        mm,
+                                        (double)globals.DoubleWorldWeight / (double)(globals.DoubleWorldWeight + globals.DoubleCountryWeight),
+                                        distroEquities1, distroBonds1, distroBills1,
+                                        distroEquities2, distroBonds2, distroBills2);
+
+                                    ModelResult mr = new ModelResult(mm, result);
+                                    modelResults.Add(mr);
+
+                                    lock (printlock)
+                                    {
+                                        Utils.WriteResult(null,
+                                            mm.CountryName, mm.Strategy,
+                                            mm.StartEq, mm.StartBo,
+                                            mm.YearlyWithdrawal, mm.RebalanceEvery,
+                                            mr.trailAverage, mr.trailMax, mr.trailMin,
+                                            mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                            mr.trailSuccessRate);
+                                    }
+                                }
+                            });
+                    });
+
+                c.Weight = 0;
+            }
         }
     }
 }

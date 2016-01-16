@@ -274,7 +274,8 @@ namespace FinancialModelB
             int repeats, 
             int startsize, 
             int doublerebalance,
-            double doubleWorldWeight,
+            int doubleCountryWeight,
+            int doubleWorldWeight,
             string doubleWorldName,
             int bins,
             int cutoff,
@@ -285,6 +286,7 @@ namespace FinancialModelB
             this.Repeats = repeats;
             this.StartSum = startsize;
             this.DoubleRebalance = doublerebalance;
+            this.DoubleCountryWeight = doubleCountryWeight;
             this.DoubleWorldWeight = doubleWorldWeight;
             this.DoubleWorldName = doubleWorldName;
             this.Bins = bins;
@@ -297,7 +299,8 @@ namespace FinancialModelB
         public int Repeats { get; set; }
         public int StartSum { get; set; }
         public int DoubleRebalance { get; set; }
-        public double DoubleWorldWeight { get; set; }
+        public int DoubleCountryWeight { get; set; }
+        public int DoubleWorldWeight { get; set; }
         public string DoubleWorldName { get; set; }
         public string Prefix { get; set; }
         public int CutoffPercent { get; set; }
@@ -311,7 +314,8 @@ namespace FinancialModelB
             int startsize = 4000000;
 
             int    doublerebalance = cycles;
-            double doubleWorldWeight = 1.0;
+            int doubleCountryWeight = 1;
+            int doubleWorldWeight = 1;
             double stepsInYear = 10.8684;
             int bins = 200;
             int cutoff = 95;
@@ -343,8 +347,11 @@ namespace FinancialModelB
                     case "doublerebalance":
                         doublerebalance = int.Parse(values[1]);
                         break;
+                    case "doublecountryweight":
+                        doubleCountryWeight = int.Parse(values[1]);
+                        break;
                     case "doubleworldweight":
-                        doubleWorldWeight = double.Parse(values[1]);
+                        doubleWorldWeight = int.Parse(values[1]);
                         break;
                     case "doubleWorldName":
                         doubleWorldName = values[1];
@@ -366,6 +373,7 @@ namespace FinancialModelB
                 repeats,
                 startsize,
                 doublerebalance,
+                doubleCountryWeight,
                 doubleWorldWeight,
                 doubleWorldName,
                 bins,
@@ -486,17 +494,19 @@ namespace FinancialModelB
 
     public class SingleRunResult
     {
-        public SingleRunResult(double trailingAmount, double withdrawalAver, double withdrawalMin, double withdrawalMax)
+        public SingleRunResult(double trailingAmount, double withdrawalAver, double withdrawalMin, double withdrawalMax, string country)
         {
             this.TrailingAmount = trailingAmount;
             this.WithdrawalAver = withdrawalAver;
             this.WithdrawalMax = withdrawalMax;
             this.WithdrawalMin = withdrawalMin;
+            this.Country = country;
         }
 
         public double TrailingAmount { get; set; }
         public double WithdrawalAver { get; set; }
         public double WithdrawalMin { get; set; }
         public double WithdrawalMax { get; set; }
+        public string Country { get; set; }
     }
 }
