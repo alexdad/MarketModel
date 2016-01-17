@@ -54,9 +54,50 @@ namespace FinancialModelB
         public static int PercentageScale { get { return 10000; } }
         public static double StepsInYear { get { return 1239.0 / 114.0; } }
 
-        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,Q1,Q2,Q3,Q4,Q5,SuccessRate, ";
+        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,Q1,Q2,Q3,Q4,Q5,TrailSuccess,WDSuccess,SuccessRate, ";
 
-        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12}{13:F2},";
+        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12}{13:F2},{14:F2},{15:F2},";
+
+        public static void WriteResult(StreamWriter sw, ModelResult mr, object printlock)
+        {
+            lock (printlock)
+            {
+                Utils.WriteResult(sw,
+                                    mr.model.CountryName,
+                                    mr.model.Strategy,
+                                    mr.model.StartEq,
+                                    mr.model.StartBo,
+                                    mr.model.YearlyWithdrawal,
+                                    mr.model.RebalanceEvery,
+                                    mr.trailAverage,
+                                    mr.trailMax,
+                                    mr.trailMin,
+                                    mr.withdrawalAverage,
+                                    mr.withdrawalMax,
+                                    mr.withdrawalMin,
+                                    mr.WDistrib,
+                                    mr.trailSuccessRate,
+                                    mr.withdrawalSuccessRate,
+                                    mr.overallSuccessRate);
+            }
+        }
+
+        public static void WriteResult(StreamWriter sw, Model mm, ModelResult mr, object printlock)
+        {
+            lock (printlock)
+            {
+                Utils.WriteResult(sw,
+                    mm.CountryName, mm.Strategy,
+                    mm.StartEq, mm.StartBo,
+                    mm.YearlyWithdrawal, mm.RebalanceEvery,
+                    mr.trailAverage, mr.trailMax, mr.trailMin,
+                    mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                    mr.WDistrib,
+                    mr.trailSuccessRate,
+                    mr.withdrawalSuccessRate,
+                    mr.overallSuccessRate);
+            }
+        }
 
         public static void WriteResult(
             StreamWriter sw,  
@@ -66,6 +107,8 @@ namespace FinancialModelB
             double trailAv, double trailMax, double trailMin, 
             double wdAv, double wdMax, double wdMin, 
             double[] WDistrib,
+            double trailSuccess,
+            double wdSuccess,
             double successRate)
         {
             StringBuilder sb = new StringBuilder();
@@ -81,6 +124,8 @@ namespace FinancialModelB
                                     trailAv, trailMax, trailMin,
                                     wdAv, wdMax, wdMin, 
                                     sb.ToString(),
+                                    trailSuccess,
+                                    wdSuccess,
                                     successRate);
             }
             else
@@ -91,7 +136,9 @@ namespace FinancialModelB
                                     wd, rebalance,
                                     trailAv, trailMax, trailMin,
                                     wdAv, wdMax, wdMin,
-                                    sb.ToString(), 
+                                    sb.ToString(),
+                                    trailSuccess,
+                                    wdSuccess,
                                     successRate);
             };
         }
@@ -569,13 +616,14 @@ namespace FinancialModelB
             }
 
             int failures = 0, successes = 0;
-            double successRate = Models.Check(globals, results, ref failures, ref successes);
-            
-            trailSuccessRate = successRate;
+            trailSuccessRate = Models.CheckTrailingAmount(globals, results, ref failures, ref successes);
 
+            withdrawalSuccessRate = Models.CheckWithdrawals(globals, results, ref failures, ref successes);
             trailAverage = withdrawalAverage = 0;
             trailMin = withdrawalMin = double.MaxValue;
             trailMax = withdrawalMax = double.MinValue;
+
+            overallSuccessRate = Models.CheckOverall(globals, results, ref failures, ref successes);
 
             int count = 0;
             foreach(var sr in results)
@@ -599,10 +647,12 @@ namespace FinancialModelB
         }
 
         public Model model;
+        public double overallSuccessRate;
         public double trailSuccessRate;
         public double trailAverage;
         public double trailMin;
         public double trailMax;
+        public double withdrawalSuccessRate;
         public double withdrawalAverage;
         public double withdrawalMin;
         public double withdrawalMax;

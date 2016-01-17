@@ -198,7 +198,7 @@ namespace FinancialModelB
             return results;
         }
 
-        public static double Check(GlobalParams globals, 
+        public static double CheckTrailingAmount(GlobalParams globals, 
                                    List<SingleRunResult> results, 
                                    ref int failures, ref int successes)
         {
@@ -206,7 +206,7 @@ namespace FinancialModelB
             successes = 0;
             foreach (SingleRunResult r in results)
             {
-                if (r.TrailingAmount <= 1000 || r.InsufficientWdRrate > globals.AllowedInsufficientRate)
+                if (r.TrailingAmount <= 1000)
                     failures++;
                 else
                     successes++;
@@ -216,5 +216,45 @@ namespace FinancialModelB
             else
                 return (double)successes / (double)(successes + failures);
         }
+
+        public static double CheckWithdrawals(GlobalParams globals,
+                                   List<SingleRunResult> results,
+                                   ref int failures, ref int successes)
+        {
+            failures = 0;
+            successes = 0;
+            foreach (SingleRunResult r in results)
+            {
+                if (r.InsufficientWdRrate > globals.AllowedInsufficientRate)
+                    failures++;
+                else
+                    successes++;
+            }
+            if (successes + failures == 0)
+                return 0.0;
+            else
+                return (double)successes / (double)(successes + failures);
+        }
+
+        public static double CheckOverall(GlobalParams globals,
+                                   List<SingleRunResult> results,
+                                   ref int failures, ref int successes)
+        {
+            failures = 0;
+            successes = 0;
+            foreach (SingleRunResult r in results)
+            {
+                if (r.TrailingAmount <= 1000 ||
+                    r.InsufficientWdRrate > globals.AllowedInsufficientRate)
+                    failures++;
+                else
+                    successes++;
+            }
+            if (successes + failures == 0)
+                return 0.0;
+            else
+                return (double)successes / (double)(successes + failures);
+        }
+    
     }
 }

@@ -224,21 +224,7 @@ namespace FinancialModelB
 
                 foreach(ModelResult mr in sortedResults)
                 {
-                    Utils.WriteResult(sw,
-                        mr.model.CountryName,
-                        mr.model.Strategy,
-                        mr.model.StartEq,
-                        mr.model.StartBo,
-                        mr.model.YearlyWithdrawal,
-                        mr.model.RebalanceEvery,
-                        mr.trailAverage,
-                        mr.trailMax,
-                        mr.trailMin,
-                        mr.withdrawalAverage,
-                        mr.withdrawalMax,
-                        mr.withdrawalMin,
-                        mr.WDistrib,
-                        mr.trailSuccessRate);
+                    Utils.WriteResult(sw, mr, printLock);
 
                     if (mr.trailSuccessRate >= globals.CutoffPercent / 100.0)
                     {
@@ -307,18 +293,7 @@ namespace FinancialModelB
 
                         ModelResult mr = new ModelResult(globals, m, result);
                         modelResults.Add(mr);
-
-                        lock (printlock)
-                        {
-                            Utils.WriteResult(null,
-                                m.CountryName, m.Strategy,
-                                m.StartEq, m.StartBo,
-                                m.YearlyWithdrawal, m.RebalanceEvery,
-                                mr.trailAverage, mr.trailMax, mr.trailMin,
-                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                mr.WDistrib,
-                                mr.trailSuccessRate);
-                        }
+                        Utils.WriteResult(null, m, mr, printlock);
                     }
                 });
         }
@@ -405,18 +380,8 @@ namespace FinancialModelB
 
                         ModelResult mr = new ModelResult(globals, m, result);
                         modelResults.Add(mr);
+                        Utils.WriteResult(null, m, mr, printlock);
 
-                        lock (printlock)
-                        {
-                            Utils.WriteResult(null,
-                                m.CountryName, m.Strategy,
-                                m.StartEq, m.StartBo,
-                                m.YearlyWithdrawal, m.RebalanceEvery,
-                                mr.trailAverage, mr.trailMax, mr.trailMin,
-                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                mr.WDistrib,
-                                mr.trailSuccessRate);
-                        }
                     }
                 });
         }
@@ -476,18 +441,7 @@ namespace FinancialModelB
 
                                 ModelResult mr = new ModelResult(globals, mm, result);
                                 modelResults.Add(mr);
-
-                                lock (printlock)
-                                {
-                                    Utils.WriteResult(null,
-                                        mm.CountryName, mm.Strategy,
-                                        mm.StartEq, mm.StartBo,
-                                        mm.YearlyWithdrawal, mm.RebalanceEvery,
-                                        mr.trailAverage, mr.trailMax, mr.trailMin,
-                                        mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                        mr.WDistrib,
-                                        mr.trailSuccessRate);
-                                }
+                                Utils.WriteResult(null, m, mr, printlock);
                             }
                         });
                 });
@@ -582,18 +536,7 @@ namespace FinancialModelB
 
                                 ModelResult mr = new ModelResult(globals, mm, result);
                                 modelResults.Add(mr);
-
-                                lock (printlock)
-                                {
-                                    Utils.WriteResult(null,
-                                        mm.CountryName, mm.Strategy,
-                                        mm.StartEq, mm.StartBo,
-                                        mm.YearlyWithdrawal, mm.RebalanceEvery,
-                                        mr.trailAverage, mr.trailMax, mr.trailMin,
-                                        mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                        mr.WDistrib,
-                                        mr.trailSuccessRate);
-                                }
+                                Utils.WriteResult(null, m, mr, printlock);
                             }
                         });
                 });
@@ -661,19 +604,7 @@ namespace FinancialModelB
 
                                         ModelResult mr = new ModelResult(globals, mm, result);
                                         modelResults.Add(mr);
-
-                                        lock (printlock)
-                                        {
-                                            Utils.WriteResult(null,
-                                                mm.CountryName, mm.Strategy,
-                                                mm.StartEq, mm.StartBo,
-                                                mm.YearlyWithdrawal, mm.RebalanceEvery,
-                                                mr.trailAverage, mr.trailMax, mr.trailMin,
-                                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                                mr.WDistrib,
-                                                mr.trailSuccessRate);
-                                        }
-
+                                        Utils.WriteResult(null, m, mr, printlock);
                                     }
                                 }
                             });
@@ -770,18 +701,7 @@ namespace FinancialModelB
 
                                         ModelResult mr = new ModelResult(globals, mm, result);
                                         modelResults.Add(mr);
-
-                                        lock (printlock)
-                                        {
-                                            Utils.WriteResult(null,
-                                                mm.CountryName, mm.Strategy,
-                                                mm.StartEq, mm.StartBo,
-                                                mm.YearlyWithdrawal, mm.RebalanceEvery,
-                                                mr.trailAverage, mr.trailMax, mr.trailMin,
-                                                mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
-                                                mr.WDistrib,
-                                                mr.trailSuccessRate);
-                                        }
+                                        Utils.WriteResult(null, m, mr, printlock);
                                     }
                                 }
                             });
