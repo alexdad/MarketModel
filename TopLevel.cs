@@ -121,23 +121,23 @@ namespace FinancialModelB
                             sweepMode = SweepMode.SweepAndCountry;
                             resultPrefix += "_Country";
                             break;
-                        case "strategy":
+                        case "str":
                             factors[i] = Factor.Strategy;
                             resultPrefix += "_Strategy";
                             break;
-                        case "worldshare":
+                        case "world":
                             factors[i] = Factor.WorldShare;
-                            resultPrefix += "_WorldShare";
+                            resultPrefix += "_World";
                             break;
-                        case "withdrawal":
+                        case "wd":
                             factors[i] = Factor.Withdrawal;
                             resultPrefix += "_Withdrawal";
                             break;
-                        case "equity":
+                        case "eq":
                             factors[i] = Factor.Equity;
                             resultPrefix += "_Equity";
                             break;
-                        case "bonds":
+                        case "bo":
                             factors[i] = Factor.Bonds;
                             resultPrefix += "_Bonds";
                             break;
