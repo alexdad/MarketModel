@@ -110,7 +110,7 @@ namespace FinancialModelB
             Object printlock)
         {
             int[] tests = {1,2,3};
-            ParallelLoopResult res1 = Parallel.ForEach(
+            var res1 = Parallel.ForEach(
                     tests,
                     (t) =>
                     {
@@ -150,7 +150,7 @@ namespace FinancialModelB
             Object printlock)
         {
             int[] cases = { 1, 2, 3 };
-            ParallelLoopResult res1 = Parallel.ForEach(
+            var res1 = Parallel.ForEach(
                     cases,
                     (t) =>
                     {

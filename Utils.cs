@@ -54,17 +54,24 @@ namespace FinancialModelB
         public static int PercentageScale { get { return 10000; } }
         public static double StepsInYear { get { return 1239.0 / 114.0; } }
 
-        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,SuccessRate, ";
+        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,Q1,Q2,Q3,Q4,Q5,SuccessRate, ";
 
-        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12:F2},";
+        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12}{13:F2},";
 
-        public static void WriteResult(StreamWriter sw,  
+        public static void WriteResult(
+            StreamWriter sw,  
             string country, int strategy, 
             int eq, int bo, 
             double wd, int rebalance, 
             double trailAv, double trailMax, double trailMin, 
-            double wdAv, double wdMax, double wdMin, double successRate)
+            double wdAv, double wdMax, double wdMin, 
+            double[] WDistrib,
+            double successRate)
         {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < WDistrib.Length; i++)
+                sb.Append(string.Format("{0:F2},", WDistrib[i]));
+
             if (sw == null)
             {
                 Console.WriteLine(ResultFormat,
@@ -72,7 +79,9 @@ namespace FinancialModelB
                                     eq, bo,
                                     wd, rebalance,
                                     trailAv, trailMax, trailMin,
-                                    wdAv, wdMax, wdMin, successRate);
+                                    wdAv, wdMax, wdMin, 
+                                    sb.ToString(),
+                                    successRate);
             }
             else
             {
@@ -81,7 +90,9 @@ namespace FinancialModelB
                                     eq, bo,
                                     wd, rebalance,
                                     trailAv, trailMax, trailMin,
-                                    wdAv, wdMax, wdMin, successRate);
+                                    wdAv, wdMax, wdMin,
+                                    sb.ToString(), 
+                                    successRate);
             };
         }
      
@@ -95,14 +106,6 @@ namespace FinancialModelB
 
         public static SweepParameters[] Factorize(GlobalParams globals, Factor[] factors, List<Country> countries)
         {
-            int[] SweepStrategies = { 1, 2, 3 };
-            // TODO - make it readable
-            //Double[] SweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
-            //Double[] SweepWithdrawalRates = {  2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6 };
-            //int[] SweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
-            //int[] SweepEquities = {  30, 40, 50, 60, 70, 80, 90, 100 };
-            //int[] SweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
-            //int[] SweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             SweepParameters[] sweeps = new SweepParameters[1];
             sweeps[0].Strategy = -1;
             sweeps[0].Equity = -1;
@@ -120,14 +123,14 @@ namespace FinancialModelB
                     case Factor.Strategy:
                         {
                             SweepParameters[] oldSweeps = sweeps;
-                            sweeps = new SweepParameters[oldSweeps.Length * SweepStrategies.Length];
+                            sweeps = new SweepParameters[oldSweeps.Length * globals.SweepStrategies.Length];
                             int c = 0;
                             for (int o = 0; o < oldSweeps.Length; o++)
                             {
-                                for (int n = 0; n < SweepStrategies.Length; n++)
+                                for (int n = 0; n < globals.SweepStrategies.Length; n++)
                                 {
                                     sweeps[c] = oldSweeps[o];
-                                    sweeps[c].Strategy = SweepStrategies[n];
+                                    sweeps[c].Strategy = globals.SweepStrategies[n];
                                     c++;
                                 }
                             }
@@ -291,13 +294,17 @@ namespace FinancialModelB
             int doubleWorldWeight,
             string doubleWorldName,
             int bins,
+            int wdBins,
             int cutoff,
+            int essentialsPercent,
+            int allowedInsufficientRate,
             double stepsInYear,
             string prefix,
             double[] sweepWithdrawalRates,
             int[] sweepWorldShares,
             int[] sweepEquities,
-            int[] sweepBonds)
+            int[] sweepBonds,
+            int[] sweepStrategies)
         {
             this.Cycles = cycles;
             this.Repeats = repeats;
@@ -307,6 +314,7 @@ namespace FinancialModelB
             this.DoubleWorldWeight = doubleWorldWeight;
             this.DoubleWorldName = doubleWorldName;
             this.Bins = bins;
+            this.WDBins = wdBins;
             this.StepsInYear = stepsInYear;
             this.CutoffPercent = cutoff;
             this.Prefix = prefix;
@@ -314,6 +322,9 @@ namespace FinancialModelB
             this.SweepWorldShares = sweepWorldShares;
             this.SweepEquities = sweepEquities;
             this.SweepBonds = sweepBonds;
+            this.SweepStrategies = sweepStrategies;
+            this.EssentialsPercent = essentialsPercent;
+            this.AllowedInsufficientRate = allowedInsufficientRate;
         }
 
         public int Cycles { get; set; }
@@ -325,12 +336,17 @@ namespace FinancialModelB
         public string DoubleWorldName { get; set; }
         public string Prefix { get; set; }
         public int CutoffPercent { get; set; }
+        public int EssentialsPercent { get; set; }
+        public int AllowedInsufficientRate { get; set; }
         public int Bins { get; set; }
+        public int WDBins { get; set; }
         public double StepsInYear { get; set; }
         public Double[] SweepWithdrawalRates { get; set; }
         public int[] SweepWorldShares { get; set; }
         public int[] SweepEquities { get; set; }
         public int[] SweepBonds { get; set; }
+        public int[] SweepStrategies { get; set; }
+
 
         public static GlobalParams ReadParams(string fname)
         {
@@ -343,12 +359,16 @@ namespace FinancialModelB
             int doubleWorldWeight = 1;
             double stepsInYear = 10.8684;
             int bins = 200;
+            int wdBins = 5;
             int cutoff = 95;
+            int essentialsPercent = 80;
+            int allowedInsufficientRate = 5;
             string doubleWorldName = "world.jpg";
             Double[] sweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
             int[] sweepWorldShares = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] sweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] sweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            int[] sweepStrategies = { 1, 2, 3 };
 
             
             string prefix = "R";
@@ -389,8 +409,17 @@ namespace FinancialModelB
                     case "bins":
                         bins = int.Parse(values[1]);
                         break;
+                    case "wdbins":
+                        wdBins = int.Parse(values[1]);
+                        break;
                     case "cutoff":
                         cutoff = int.Parse(values[1]);
+                        break;
+                    case "essentialspercent":
+                        essentialsPercent = int.Parse(values[1]);
+                        break;
+                    case "allowedinsufficientrate":
+                        allowedInsufficientRate = int.Parse(values[1]);
                         break;
                     case "stepsinyear":
                         stepsInYear = double.Parse(values[1]);
@@ -415,6 +444,11 @@ namespace FinancialModelB
                         for (int i = 1; i < values.Length-1; i++ )
                             sweepBonds[i-1] = int.Parse(values[i]);
                         break;
+                    case "sweepstr":
+                        sweepStrategies = new int[values.Length - 2];
+                        for (int i = 1; i < values.Length-1; i++ )
+                            sweepStrategies[i-1] = int.Parse(values[i]);
+                        break;
                 }
             }
 
@@ -427,14 +461,17 @@ namespace FinancialModelB
                 doubleWorldWeight,
                 doubleWorldName,
                 bins,
+                wdBins,
                 cutoff,
+                essentialsPercent,
+                allowedInsufficientRate,
                 stepsInYear,
                 prefix,
                 sweepWithdrawalRates,
                 sweepWorldShares,
                 sweepEquities,
-                sweepBonds);
-                    
+                sweepBonds,
+                sweepStrategies);
         }
 
     }
@@ -519,12 +556,20 @@ namespace FinancialModelB
 
     public class ModelResult
     {
-        public ModelResult(Model m, List<SingleRunResult> results)
+        public ModelResult(GlobalParams globals, Model m, List<SingleRunResult> results)
         {
             this.model = m;
+            this.WDistrib = new double[globals.WDBins];
+            for (int i = 0; i < globals.WDBins; i++)
+            {
+                this.WDistrib[i] = 0;
+                foreach (var r in results)
+                    this.WDistrib[i] = this.WDistrib[i] + r.WDistrib[i];
+                this.WDistrib[i] /= results.Count;
+            }
 
             int failures = 0, successes = 0;
-            double successRate = Models.Check(results, ref failures, ref successes);
+            double successRate = Models.Check(globals, results, ref failures, ref successes);
             
             trailSuccessRate = successRate;
 
@@ -561,23 +606,80 @@ namespace FinancialModelB
         public double withdrawalAverage;
         public double withdrawalMin;
         public double withdrawalMax;
+        public double[] WDistrib;
     }
 
     public class SingleRunResult
     {
-        public SingleRunResult(double trailingAmount, double withdrawalAver, double withdrawalMin, double withdrawalMax, string country)
+        public SingleRunResult(GlobalParams globals, string country, Model m, 
+            double trailingAmount, double[] withdrawals)
         {
-            this.TrailingAmount = trailingAmount;
-            this.WithdrawalAver = withdrawalAver;
-            this.WithdrawalMax = withdrawalMax;
-            this.WithdrawalMin = withdrawalMin;
             this.Country = country;
+            this.TrailingAmount = trailingAmount;
+            SetWD(globals, m, withdrawals);
         }
 
+        public SingleRunResult(GlobalParams globals, string country, Model m, 
+            double trailingAmount, double[] withdrawals1, double[] withdrawals2)
+        {
+            this.Country = country;
+            this.TrailingAmount = trailingAmount;
+
+            int len = withdrawals1.Length;
+            if (len != withdrawals2.Length)
+                throw new Exception("Wrong lens");
+            double[] withdrawals = new double[len];
+            for (int i = 0; i < len; i++)
+                withdrawals[i] = withdrawals1[i] + withdrawals2[i];
+
+            SetWD(globals, m, withdrawals);
+        }
+
+        private void SetWD(GlobalParams globals, Model m, double[] withdrawals)
+        {
+            double essentialWD = globals.EssentialsPercent / 100.0 * globals.StartSum * Models.NormativeStepWD(m);
+            int nSmallishWD = 0;
+            foreach(var w in withdrawals)
+            {
+                if (w < essentialWD)
+                    nSmallishWD++;
+            }
+            this.InsufficientWdRrate = (double)nSmallishWD * 100.0 / (double)withdrawals.Length;
+
+            double[] binCounts = new double[globals.WDBins];
+            for (int i = 0; i < binCounts.Length; i++)
+                binCounts[i] = 0.0;
+
+            this.WithdrawalAver = withdrawals.Average();
+            this.WithdrawalMax = withdrawals.Max();
+            this.WithdrawalMin = withdrawals.Min();
+            double binSize = (WithdrawalMax - WithdrawalMin) / globals.WDBins;
+            double count = 0;
+            if (WithdrawalMax - WithdrawalMin > 1000)
+            {
+                foreach (double wd in withdrawals)
+                {
+                    int ind = (int)((wd - this.WithdrawalMin - 1) / binSize);
+                    binCounts[ind] = binCounts[ind] + 1.0;
+                    count = count + 1.0;
+                }
+            }
+            else 
+            {
+                count = withdrawals.Count();
+                binCounts[binCounts.Length - 1] = count;
+            }
+
+            this.WDistrib = new double[globals.WDBins];
+            for (int i = 0; i < globals.WDBins; i++)
+                WDistrib[i] = binCounts[i] / count;
+        }
         public double TrailingAmount { get; set; }
         public double WithdrawalAver { get; set; }
         public double WithdrawalMin { get; set; }
         public double WithdrawalMax { get; set; }
+        public double InsufficientWdRrate { get; set;  }
+        public double[] WDistrib{ get; set; }
         public string Country { get; set; }
     }
 }

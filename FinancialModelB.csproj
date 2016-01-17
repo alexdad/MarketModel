@@ -45,7 +45,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CodeFile1.cs" />
     <Compile Include="Graphs.cs" />
     <Compile Include="Distro.cs" />
     <Compile Include="Models.cs" />

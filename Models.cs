@@ -130,13 +130,7 @@ namespace FinancialModelB
                                   ref prior, ref withdrawals);
                 }
 
-                singleRunResults.Add(
-                    new SingleRunResult(
-                        eq + bo + bi,
-                        withdrawals.Average(),
-                        withdrawals.Min(),
-                        withdrawals.Max(),
-                        ""));
+                singleRunResults.Add(new SingleRunResult(globals, "", m, eq + bo + bi, withdrawals.ToArray()));
             }
             return singleRunResults;
         }
@@ -195,23 +189,24 @@ namespace FinancialModelB
 
                 results.Add( 
                     new SingleRunResult(
-                        eq1 + bo1 + bi1 + eq2 + bo2 + bi2,
-                        withdrawals1.Average() + withdrawals2.Average(),
-                        withdrawals1.Min() + withdrawals2.Min(),
-                        withdrawals1.Max() + withdrawals2.Max(),
-                        m.CountryName));
+                        globals, m.CountryName, m, 
+                        eq1 + bo1 + bi1 + eq2 + bo2 + bi2, 
+                        withdrawals1.ToArray(), 
+                        withdrawals2.ToArray()));
 
             }
             return results;
         }
 
-        public static double Check(List<SingleRunResult> results, ref int failures, ref int successes)
+        public static double Check(GlobalParams globals, 
+                                   List<SingleRunResult> results, 
+                                   ref int failures, ref int successes)
         {
             failures = 0; 
             successes = 0;
             foreach (SingleRunResult r in results)
             {
-                if (r.TrailingAmount <= 1000)
+                if (r.TrailingAmount <= 1000 || r.InsufficientWdRrate > globals.AllowedInsufficientRate)
                     failures++;
                 else
                     successes++;

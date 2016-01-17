@@ -237,6 +237,7 @@ namespace FinancialModelB
                         mr.withdrawalAverage,
                         mr.withdrawalMax,
                         mr.withdrawalMin,
+                        mr.WDistrib,
                         mr.trailSuccessRate);
 
                     if (mr.trailSuccessRate >= globals.CutoffPercent / 100.0)
@@ -293,7 +294,7 @@ namespace FinancialModelB
                 Console.WriteLine(Utils.ResultHeader);
             }
 
-            ParallelLoopResult res = Parallel.ForEach(
+            var res = Parallel.ForEach(
                 models,
                 (m) =>
                 {
@@ -304,7 +305,7 @@ namespace FinancialModelB
                             m,
                             distroEquities, distroBonds, distroBills);
 
-                        ModelResult mr = new ModelResult(m, result);
+                        ModelResult mr = new ModelResult(globals, m, result);
                         modelResults.Add(mr);
 
                         lock (printlock)
@@ -315,6 +316,7 @@ namespace FinancialModelB
                                 m.YearlyWithdrawal, m.RebalanceEvery,
                                 mr.trailAverage, mr.trailMax, mr.trailMin,
                                 mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                mr.WDistrib,
                                 mr.trailSuccessRate);
                         }
                     }
@@ -388,7 +390,7 @@ namespace FinancialModelB
                 Console.WriteLine(Utils.ResultHeader);
             }
 
-            ParallelLoopResult res = Parallel.ForEach(
+            var res = Parallel.ForEach(
                 models,
                 (m) =>
                 {
@@ -401,7 +403,7 @@ namespace FinancialModelB
                             distroEquities1, distroBonds1, distroBills1,
                             distroEquities2, distroBonds2, distroBills2);
 
-                        ModelResult mr = new ModelResult(m, result);
+                        ModelResult mr = new ModelResult(globals, m, result);
                         modelResults.Add(mr);
 
                         lock (printlock)
@@ -412,6 +414,7 @@ namespace FinancialModelB
                                 m.YearlyWithdrawal, m.RebalanceEvery,
                                 mr.trailAverage, mr.trailMax, mr.trailMin,
                                 mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                mr.WDistrib,
                                 mr.trailSuccessRate);
                         }
                     }
@@ -455,11 +458,11 @@ namespace FinancialModelB
                 Console.WriteLine(Utils.ResultHeader);
             }
 
-            ParallelLoopResult res2 = Parallel.ForEach(
+            var res2 = Parallel.ForEach(
                 models,
                 (m) =>
                 {
-                    ParallelLoopResult res1 = Parallel.ForEach(
+                    var res1 = Parallel.ForEach(
                         sweeps,
                         (sw) =>
                         {
@@ -471,7 +474,7 @@ namespace FinancialModelB
                                     mm,
                                     distroEquities, distroBonds, distroBills);
 
-                                ModelResult mr = new ModelResult(mm, result);
+                                ModelResult mr = new ModelResult(globals, mm, result);
                                 modelResults.Add(mr);
 
                                 lock (printlock)
@@ -482,6 +485,7 @@ namespace FinancialModelB
                                         mm.YearlyWithdrawal, mm.RebalanceEvery,
                                         mr.trailAverage, mr.trailMax, mr.trailMin,
                                         mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                        mr.WDistrib,
                                         mr.trailSuccessRate);
                                 }
                             }
@@ -557,11 +561,11 @@ namespace FinancialModelB
                 Console.WriteLine(Utils.ResultHeader);
             }
 
-            ParallelLoopResult res2 = Parallel.ForEach(
+            var res2 = Parallel.ForEach(
                 models,
                 (m) =>
                 {
-                    ParallelLoopResult res1 = Parallel.ForEach(
+                    var res1 = Parallel.ForEach(
                         sweeps,
                         (sw) =>
                         {
@@ -576,7 +580,7 @@ namespace FinancialModelB
                                     distroEquities1, distroBonds1, distroBills1,
                                     distroEquities2, distroBonds2, distroBills2);
 
-                                ModelResult mr = new ModelResult(mm, result);
+                                ModelResult mr = new ModelResult(globals, mm, result);
                                 modelResults.Add(mr);
 
                                 lock (printlock)
@@ -587,6 +591,7 @@ namespace FinancialModelB
                                         mm.YearlyWithdrawal, mm.RebalanceEvery,
                                         mr.trailAverage, mr.trailMax, mr.trailMin,
                                         mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                        mr.WDistrib,
                                         mr.trailSuccessRate);
                                 }
                             }
@@ -636,11 +641,11 @@ namespace FinancialModelB
                     Console.WriteLine(Utils.ResultHeader);
                 }
 
-                ParallelLoopResult res2 = Parallel.ForEach(
+                var res2 = Parallel.ForEach(
                     models,
                     (m) =>
                     {
-                        ParallelLoopResult res1 = Parallel.ForEach(
+                        var res1 = Parallel.ForEach(
                             sweeps,
                             (sw) =>
                             {
@@ -654,7 +659,7 @@ namespace FinancialModelB
                                             mm,
                                             distroEquities, distroBonds, distroBills);
 
-                                        ModelResult mr = new ModelResult(mm, result);
+                                        ModelResult mr = new ModelResult(globals, mm, result);
                                         modelResults.Add(mr);
 
                                         lock (printlock)
@@ -665,6 +670,7 @@ namespace FinancialModelB
                                                 mm.YearlyWithdrawal, mm.RebalanceEvery,
                                                 mr.trailAverage, mr.trailMax, mr.trailMin,
                                                 mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                                mr.WDistrib,
                                                 mr.trailSuccessRate);
                                         }
 
@@ -742,11 +748,11 @@ namespace FinancialModelB
                     Console.WriteLine(Utils.ResultHeader);
                 }
 
-                ParallelLoopResult res2 = Parallel.ForEach(
+                var res2 = Parallel.ForEach(
                     models,
                     (m) =>
                     {
-                        ParallelLoopResult res1 = Parallel.ForEach(
+                        var res1 = Parallel.ForEach(
                             sweeps,
                             (sw) =>
                             {
@@ -762,7 +768,7 @@ namespace FinancialModelB
                                             distroEquities1, distroBonds1, distroBills1,
                                             distroEquities2, distroBonds2, distroBills2);
 
-                                        ModelResult mr = new ModelResult(mm, result);
+                                        ModelResult mr = new ModelResult(globals, mm, result);
                                         modelResults.Add(mr);
 
                                         lock (printlock)
@@ -773,6 +779,7 @@ namespace FinancialModelB
                                                 mm.YearlyWithdrawal, mm.RebalanceEvery,
                                                 mr.trailAverage, mr.trailMax, mr.trailMin,
                                                 mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
+                                                mr.WDistrib,
                                                 mr.trailSuccessRate);
                                         }
                                     }
