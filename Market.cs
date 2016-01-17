@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace FinancialModelB
 {
-    public class Models
+    public class Market
     {
         public static double NormativeStepWD(Model m)
         {
@@ -18,7 +18,7 @@ namespace FinancialModelB
             int c, int r, Model m, double initialWithdrawal,
             ref double eq, ref double bo, ref double bi, 
             Distro distroEq, Distro distroBo, Distro distroBi,
-            ref double[] prior, 
+            ref double[] prior, ref double curWithdrawal, 
             ref List<double> withdrawals)
         {
             // Market play
@@ -27,16 +27,17 @@ namespace FinancialModelB
             bi *= (1.0 + distroBi.Play());
 
             // Calculate desired withdrawal on this step
-            double curWithdrawal = initialWithdrawal;
             switch(m.Strategy)
             {
                 case 1:
+                    curWithdrawal = initialWithdrawal;
                     break;
                 case 2:
                     curWithdrawal = (eq + bo + bi) * NormativeStepWD(m);
                     break;
                 case 3:
-                    if (c >= 3 * (int)Utils.StepsInYear && c % ((int)Utils.StepsInYear) == 0)
+                    if (c >= (int)(3 * Utils.StepsInYear) &&
+                        c % ((int)Utils.StepsInYear) == 0)
                         curWithdrawal = prior.Average() * NormativeStepWD(m);
                     break;
                 default:
@@ -102,48 +103,47 @@ namespace FinancialModelB
         }
 
         public static List<SingleRunResult> RunSinglePortfolioExperiment(
-            GlobalParams globals,
             Model m, 
             Distro distroEq, Distro distroBo, Distro distroBi)
         {
             int rebalanceEvery = m.RebalanceEvery;
-            double initWD = globals.StartSum * NormativeStepWD(m);
+            double initWD = Globals.Singleton().StartSum * NormativeStepWD(m);
             double[] prior = new double[3 * (int)Utils.StepsInYear];
 
             List<SingleRunResult> singleRunResults = new List<SingleRunResult>();
 
-            for (int r = 0; r < globals.Repeats; r++)
+            for (int r = 0; r < Globals.Singleton().Repeats; r++)
             {
-                double eq = globals.StartSum * m.StartEq / 100;
-                double bo = globals.StartSum * m.StartBo / 100;
-                double bi = globals.StartSum * (100 - m.StartEq - m.StartBo) / 100;
+                double eq = Globals.Singleton().StartSum * m.StartEq / 100;
+                double bo = Globals.Singleton().StartSum * m.StartBo / 100;
+                double bi = Globals.Singleton().StartSum * (100 - m.StartEq - m.StartBo) / 100;
                 if (eq < 0 || bo < 0 || bi < 0)
                     throw new Exception("Bad parameters");
 
                 List<double> withdrawals = new List<double>();
-                for (int c = 0; c < globals.Cycles; c++)
+                double curWd = initWD;
+                for (int c = 0; c < Globals.Singleton().Cycles; c++)
                 {
                     // Market play
                     RunSingleStep(c, r, m, initWD, 
                                   ref eq, ref bo, ref bi, 
                                   distroEq, distroBo, distroBi, 
-                                  ref prior, ref withdrawals);
+                                  ref prior, ref curWd, ref withdrawals);
                 }
 
-                singleRunResults.Add(new SingleRunResult(globals, "", m, eq + bo + bi, withdrawals.ToArray()));
+                singleRunResults.Add(new SingleRunResult("", m, eq + bo + bi, withdrawals.ToArray()));
             }
             return singleRunResults;
         }
 
         public static List<SingleRunResult> RunDoublePortfolioExperiment(
-            GlobalParams globals,
             Model m, 
             double share2,
             Distro distroEq1, Distro distroBo1, Distro distroBi1,
             Distro distroEq2, Distro distroBo2, Distro distroBi2)
         {
             int rebalanceEvery = m.RebalanceEvery;
-            double initWD = globals.StartSum * NormativeStepWD(m);
+            double initWD = Globals.Singleton().StartSum * NormativeStepWD(m);
             double initWD1 = initWD * (1.0 - share2);
             double initWD2 = initWD * (share2);
             double curWD1 = initWD1;
@@ -153,43 +153,45 @@ namespace FinancialModelB
 
             List<SingleRunResult> results = new List<SingleRunResult>();
 
-            for (int r = 0; r < globals.Repeats; r++)
+            for (int r = 0; r < Globals.Singleton().Repeats; r++)
             {
-                double eq1 = (1.0 - share2) * globals.StartSum * m.StartEq / 100;
-                double bo1 = (1.0 - share2) * globals.StartSum * m.StartBo / 100;
-                double bi1 = (1.0 - share2) * globals.StartSum * (100 - m.StartEq - m.StartBo) / 100;
+                double eq1 = (1.0 - share2) * Globals.Singleton().StartSum * m.StartEq / 100;
+                double bo1 = (1.0 - share2) * Globals.Singleton().StartSum * m.StartBo / 100;
+                double bi1 = (1.0 - share2) * Globals.Singleton().StartSum * (100 - m.StartEq - m.StartBo) / 100;
                 if (eq1 < 0 || bo1 < 0 || bi1 < 0)
                     throw new Exception("Bad parameters");
 
-                double eq2 = share2 * globals.StartSum * m.StartEq / 100;
-                double bo2 = share2 * globals.StartSum * m.StartBo / 100;
-                double bi2 = share2 * globals.StartSum * (100 - m.StartEq - m.StartBo) / 100;
+                double eq2 = share2 * Globals.Singleton().StartSum * m.StartEq / 100;
+                double bo2 = share2 * Globals.Singleton().StartSum * m.StartBo / 100;
+                double bi2 = share2 * Globals.Singleton().StartSum * (100 - m.StartEq - m.StartBo) / 100;
                 if (eq2 < 0 || bo2 < 0 || bi2 < 0)
                     throw new Exception("Bad parameters");
 
                 //List<double> withdrawals = new List<double>();
                 List<double> withdrawals1 = new List<double>();
                 List<double> withdrawals2 = new List<double>();
+                double curWd1 = initWD1;
+                double curWd2 = initWD2;
 
-                for (int c = 0; c < globals.Cycles; c++)
+                for (int c = 0; c < Globals.Singleton().Cycles; c++)
                 {
 
                     RunSingleStep(c, r, m, initWD1,
                                   ref eq1, ref bo1, ref bi1,
                                   distroEq1, distroBo1, distroBi1,
-                                  ref prior1, ref withdrawals1);
+                                  ref prior1, ref curWD1, ref withdrawals1);
 
                     RunSingleStep(c, r, m, initWD2,
                                   ref eq2, ref bo2, ref bi2,
                                   distroEq2, distroBo2, distroBi2,
-                                  ref prior2, ref withdrawals2);
+                                  ref prior2, ref curWD2, ref withdrawals2);
 
                     //TODO: here comes portfolio parts re balancing
                 }
 
                 results.Add( 
                     new SingleRunResult(
-                        globals, m.CountryName, m, 
+                        m.CountryName, m, 
                         eq1 + bo1 + bi1 + eq2 + bo2 + bi2, 
                         withdrawals1.ToArray(), 
                         withdrawals2.ToArray()));
@@ -198,7 +200,7 @@ namespace FinancialModelB
             return results;
         }
 
-        public static double CheckTrailingAmount(GlobalParams globals, 
+        public static double CheckTrailingAmount(
                                    List<SingleRunResult> results, 
                                    ref int failures, ref int successes)
         {
@@ -217,7 +219,7 @@ namespace FinancialModelB
                 return (double)successes / (double)(successes + failures);
         }
 
-        public static double CheckWithdrawals(GlobalParams globals,
+        public static double CheckWithdrawals(
                                    List<SingleRunResult> results,
                                    ref int failures, ref int successes)
         {
@@ -225,7 +227,7 @@ namespace FinancialModelB
             successes = 0;
             foreach (SingleRunResult r in results)
             {
-                if (r.InsufficientWdRrate > globals.AllowedInsufficientRate)
+                if (r.InsufficientWdRrate > Globals.Singleton().AllowedInsufficientRate)
                     failures++;
                 else
                     successes++;
@@ -236,7 +238,7 @@ namespace FinancialModelB
                 return (double)successes / (double)(successes + failures);
         }
 
-        public static double CheckOverall(GlobalParams globals,
+        public static double CheckOverall(
                                    List<SingleRunResult> results,
                                    ref int failures, ref int successes)
         {
@@ -245,7 +247,7 @@ namespace FinancialModelB
             foreach (SingleRunResult r in results)
             {
                 if (r.TrailingAmount <= 1000 ||
-                    r.InsufficientWdRrate > globals.AllowedInsufficientRate)
+                    r.InsufficientWdRrate > Globals.Singleton().AllowedInsufficientRate)
                     failures++;
                 else
                     successes++;

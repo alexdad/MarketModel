@@ -105,7 +105,6 @@ namespace FinancialModelB
         }
 
         public static void Test(
-            GlobalParams globals,
             Distro distroEquities, Distro distroBonds, Distro distroBills, 
             Object printlock)
         {
@@ -115,7 +114,7 @@ namespace FinancialModelB
                     (t) =>
                     {
                         List<int> testValues = new List<int>();
-                        Distro distroTest = new Distro(globals.Bins);
+                        Distro distroTest = new Distro(Globals.Singleton().Bins);
                         switch (t)
                         {
                             case 1:
@@ -123,28 +122,27 @@ namespace FinancialModelB
                                     testValues.Add((int)(distroEquities.Play() * Utils.PercentageScale));
                                 Distro.PrepareDistribution(
                                     testValues, distroTest, 
-                                    globals.Bins, "testEq.csv", printlock);
+                                    Globals.Singleton().Bins, "testEq.csv", printlock);
                                 break;
                             case 2:
                                 for (int i = 0; i < 10000000; i++)
                                     testValues.Add((int)(distroBonds.Play() * Utils.PercentageScale));
                                 Distro.PrepareDistribution(
                                     testValues, distroTest,
-                                    globals.Bins, "testBo.csv", printlock);
+                                    Globals.Singleton().Bins, "testBo.csv", printlock);
                                 break;
                             case 3:
                                 for (int i = 0; i < 10000000; i++)
                                     testValues.Add((int)(distroBills.Play() * Utils.PercentageScale));
                                 Distro.PrepareDistribution(
                                     testValues, distroTest,
-                                    globals.Bins, "testBi.csv", printlock);
+                                    Globals.Singleton().Bins, "testBi.csv", printlock);
                                 break;
                         }
                     });
         }
 
         public static void Prepare(
-            GlobalParams globals,
             List<int> equityChanges, List<int> bondChanges,  List<int> billChanges,
             Distro distroEquities,   Distro distroBonds,     Distro distroBills,
             Object printlock)
@@ -155,23 +153,23 @@ namespace FinancialModelB
                     (t) =>
                     {
                         List<int> testValues = new List<int>();
-                        Distro distroTest = new Distro(globals.Bins);
+                        Distro distroTest = new Distro(Globals.Singleton().Bins);
                         switch (t)
                         {
                             case 1:
                                 Distro.PrepareDistribution(
                                     equityChanges, distroEquities,
-                                    globals.Bins, "DistroEquities.csv", printlock);
+                                    Globals.Singleton().Bins, "DistroEquities.csv", printlock);
                                 break;
                             case 2:
                                 Distro.PrepareDistribution(
                                     bondChanges, distroBonds,
-                                    globals.Bins, "DistroBonds.csv", printlock);
+                                    Globals.Singleton().Bins, "DistroBonds.csv", printlock);
                                 break;
                             case 3:
                                 Distro.PrepareDistribution(
                                     billChanges, distroBills,
-                                    globals.Bins, "DistroBills.csv", printlock);
+                                    Globals.Singleton().Bins, "DistroBills.csv", printlock);
                                 break;
                         }
                     });
