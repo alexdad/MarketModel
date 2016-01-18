@@ -19,6 +19,7 @@ namespace FinancialModelB
         public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12}{13:F2},{14:F2},{15:F2},{16:F2},";
 
         private static string s_ResultDirectory;
+        private static Object s_ResultDirectoryProtection = new Object();
         public static void WriteResult(StreamWriter sw, ModelResult mr, object printlock)
         {
             lock (printlock)
@@ -109,10 +110,14 @@ namespace FinancialModelB
             };
         }
 
-        public static void Init(string prefix)
+        public static string Init(string prefix)
         {
-            if (s_ResultDirectory == null)
-                s_ResultDirectory = ResultDir(prefix);
+            lock (s_ResultDirectoryProtection)
+            {
+                if (s_ResultDirectory == null)
+                    s_ResultDirectory = ResultDir(prefix);
+            }
+            return s_ResultDirectory;
         }
         public static string CommandFileName(string prefix)
         {
@@ -145,7 +150,7 @@ namespace FinancialModelB
             string countriesFileName, 
             string modelsFileName)
         {
-            string dir = ResultDir(prefix);
+            string dir = Init(prefix);
             if (Directory.Exists(dir))
                 throw new Exception("Result doir exists");
 
