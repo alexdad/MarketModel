@@ -30,6 +30,7 @@ namespace FinancialModelB
         public int StartEq { get; set; }
         public int StartBo { get; set; }
         public double YearlyWithdrawal { get; set; }
+        public double WorldShare { get; set; }
         public int RebalanceEvery { get; set; }
         public string CountryName { get; set; }
         public static List<Model> ReadModels(string fname)
@@ -65,6 +66,8 @@ namespace FinancialModelB
                 m.StartBo = sw.Bonds;
             if (sw.WithdrawalRate >= 0)
                 m.YearlyWithdrawal = sw.WithdrawalRate;
+            if (sw.WorldShare >= 0)
+                m.WorldShare = sw.WorldShare;
 
             return m;
         }

@@ -27,7 +27,7 @@ namespace FinancialModelB
         public int WDBins { get; set; }
         public double StepsInYear { get; set; }
         public Double[] SweepWithdrawalRates { get; set; }
-        public int[] SweepWorldShares { get; set; }
+        public double[] SweepWorldShares { get; set; }
         public int[] SweepEquities { get; set; }
         public int[] SweepBonds { get; set; }
         public int[] SweepStrategies { get; set; }
@@ -49,7 +49,7 @@ namespace FinancialModelB
             string prefix,
             string resultLocation,
             double[] sweepWithdrawalRates,
-            int[] sweepWorldWeights,
+            double[] sweepWorldShares,
             int[] sweepEquities,
             int[] sweepBonds,
             int[] sweepStrategies)
@@ -68,7 +68,7 @@ namespace FinancialModelB
             this.Prefix = prefix;
             this.ResultLocation = resultLocation;
             this.SweepWithdrawalRates = sweepWithdrawalRates;
-            this.SweepWorldShares = sweepWorldWeights;
+            this.SweepWorldShares = sweepWorldShares;
             this.SweepEquities = sweepEquities;
             this.SweepBonds = sweepBonds;
             this.SweepStrategies = sweepStrategies;
@@ -76,6 +76,10 @@ namespace FinancialModelB
             this.AllowedInsufficientRate = allowedInsufficientRate;
         }
 
+        public static bool IsWorld(string c)
+        {
+            return (c.ToLower().Trim().CompareTo(Globals.Singleton().DoubleWorldName.ToLower().Trim()) == 0);
+        }
         public static void ReadParams(string fname)
         {
             int cycles = 400;
@@ -93,7 +97,7 @@ namespace FinancialModelB
             int allowedInsufficientRate = 5;
             string doubleWorldName = "world.jpg";
             Double[] sweepWithdrawalRates = { 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5 };
-            int[] sweepWorldWeights = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+            double[] sweepWorldShares = { 0, 0.25, 0.5, 0.75 };
             int[] sweepEquities = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] sweepBonds = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
             int[] sweepStrategies = { 1, 2, 3 };
@@ -161,9 +165,9 @@ namespace FinancialModelB
                             sweepWithdrawalRates[i - 1] = double.Parse(values[i]);
                         break;
                     case "sweepworld":
-                        sweepWorldWeights = new int[values.Length - 2];
+                        sweepWorldShares = new double[values.Length - 2];
                         for (int i = 1; i < values.Length - 1; i++)
-                            sweepWorldWeights[i - 1] = int.Parse(values[i]);
+                            sweepWorldShares[i - 1] = double.Parse(values[i]);
                         break;
                     case "sweepequities":
                         sweepEquities = new int[values.Length - 2];
@@ -200,7 +204,7 @@ namespace FinancialModelB
                 prefix,
                 resultLocation,
                 sweepWithdrawalRates,
-                sweepWorldWeights,
+                sweepWorldShares,
                 sweepEquities,
                 sweepBonds,
                 sweepStrategies);

@@ -14,9 +14,9 @@ namespace FinancialModelB
         public static int PercentageScale { get { return 10000; } }
         public static double StepsInYear { get { return 1239.0 / 114.0; } }
 
-        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,Q1,Q2,Q3,Q4,Q5,Productivity,TrailSuccess,WDSuccess,SuccessRate, ";
+        public const string ResultHeader = "Country,Strategy,Eq,Bo,Withdrawal,Rebalance,WorldShare,TrailAver,TrailMax,TrailMin,WDAver,WDMax,WDMin,Q1,Q2,Q3,Q4,Q5,Productivity,TrailSuccess,WDSuccess,SuccessRate, ";
 
-        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F0},{10:F0},{11:F0},{12}{13:F2},{14:F2},{15:F2},{16:F2},";
+        public const string ResultFormat = "{0},{1},{2},{3},{4:F2},{5},{6:F2},{7:F2},{8:F2},{9:F2},{10:F0},{11:F0},{12:F0},{13}{14:F2},{15:F2},{16:F2},{17:F2},";
 
         private static string s_ResultDirectory;
         private static Object s_ResultDirectoryProtection = new Object();
@@ -31,6 +31,7 @@ namespace FinancialModelB
                                     mr.model.StartBo,
                                     mr.model.YearlyWithdrawal,
                                     mr.model.RebalanceEvery,
+                                    mr.model.WorldShare,
                                     mr.trailAverage,
                                     mr.trailMax,
                                     mr.trailMin,
@@ -50,16 +51,17 @@ namespace FinancialModelB
             lock (printlock)
             {
                 Utils.WriteResult(sw,
-                    mm.CountryName, mm.Strategy,
-                    mm.StartEq, mm.StartBo,
-                    mm.YearlyWithdrawal, mm.RebalanceEvery,
+                    mm.CountryName, 
+                    mm.Strategy,
+                    mm.StartEq,      mm.StartBo,
+                    mm.YearlyWithdrawal, 
+                    mm.RebalanceEvery,
+                    mm.WorldShare,
                     mr.trailAverage, mr.trailMax, mr.trailMin,
                     mr.withdrawalAverage, mr.withdrawalMax, mr.withdrawalMin,
                     mr.WDistrib,
                     mr.productivity,
-                    mr.trailSuccessRate,
-                    mr.withdrawalSuccessRate,
-                    mr.overallSuccessRate);
+                    mr.trailSuccessRate, mr.withdrawalSuccessRate, mr.overallSuccessRate);
             }
         }
 
@@ -67,7 +69,9 @@ namespace FinancialModelB
             StreamWriter sw,  
             string country, int strategy, 
             int eq, int bo, 
-            double wd, int rebalance, 
+            double wd, 
+            int rebalance, 
+            double worldShare,
             double trailAv, double trailMax, double trailMin, 
             double wdAv, double wdMax, double wdMin, 
             double[] WDistrib,
@@ -85,7 +89,7 @@ namespace FinancialModelB
                 Console.WriteLine(ResultFormat,
                                     country, strategy,
                                     eq, bo,
-                                    wd, rebalance,
+                                    wd, rebalance, worldShare,
                                     trailAv, trailMax, trailMin,
                                     wdAv, wdMax, wdMin, 
                                     sb.ToString(),
@@ -99,7 +103,7 @@ namespace FinancialModelB
                 sw.WriteLine(ResultFormat,
                                     country, strategy,
                                     eq, bo,
-                                    wd, rebalance,
+                                    wd, rebalance, worldShare,
                                     trailAv, trailMax, trailMin,
                                     wdAv, wdMax, wdMin,
                                     sb.ToString(),
@@ -176,7 +180,8 @@ namespace FinancialModelB
             sweeps[0].Strategy = -1;
             sweeps[0].Equity = -1;
             sweeps[0].Bonds = -1;
-            sweeps[0].WorldShare = -1;
+            sweeps[0].WorldShare = (double)Globals.Singleton().DoubleWorldWeight / 
+                                   (double)(Globals.Singleton().DoubleWorldWeight + Globals.Singleton().DoubleCountryWeight);
             sweeps[0].WithdrawalRate = -1;
             sweeps[0].Country = -1;
 

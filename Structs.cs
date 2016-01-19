@@ -43,7 +43,7 @@ namespace FinancialModelB
     {
         public int Country;
         public double WithdrawalRate;
-        public int WorldShare;
+        public double WorldShare;
         public int Equity;
         public int Bonds;
         public int Strategy;

@@ -220,11 +220,12 @@ namespace FinancialModelB
             }
 
             IEnumerable<ModelResult> sortedResults = modelResults.OrderBy(
-                mr => ((mr.model.CountryName + 
-                        (mr.model.Strategy * 100).ToString() +
-                        (mr.model.StartEq) * 100).ToString() +
-                        (mr.model.StartBo) * 100).ToString() +
-                        (mr.model.YearlyWithdrawal).ToString());
+                mr => (( mr.model.WorldShare.ToString("000.00") + 
+                         mr.model.CountryName + 
+                         mr.model.Strategy.ToString("00") +
+                        (mr.model.StartEq * 100).ToString("00") +
+                        (mr.model.StartBo * 100).ToString("000") +
+                        (mr.model.YearlyWithdrawal).ToString("00"))));
 
             Dictionary<string, double> cutoffWdRequested = new Dictionary<string, double>();
             Dictionary<string, double> cutoffProd = new Dictionary<string, double>();
@@ -237,14 +238,19 @@ namespace FinancialModelB
                 {
                     Utils.WriteResult(sw, mr, printLock);
 
-                    if (mr.overallSuccessRate>= Globals.Singleton().CutoffPercent / 100.0)
+                    if (mr.overallSuccessRate >= Globals.Singleton().CutoffPercent / 100.0)
                     {
-                        if (!cutoffWdRequested.ContainsKey(mr.model.CountryName) ||
+                        if (!cutoffProd.ContainsKey(mr.model.CountryName) ||
                             mr.productivity >= cutoffProd[mr.model.CountryName])
                         {
-                            cutoffWdRequested[mr.model.CountryName] = mr.model.YearlyWithdrawal;
                             cutoffProd[mr.model.CountryName] = mr.productivity;
+                            cutoffWdRequested[mr.model.CountryName] = mr.model.YearlyWithdrawal;
                         }
+                    }
+                    else if (!cutoffProd.ContainsKey(mr.model.CountryName))
+                    {
+                        cutoffProd[mr.model.CountryName] = -1;
+                        cutoffWdRequested[mr.model.CountryName] = -1;
                     }
                 }
             }
@@ -319,7 +325,7 @@ namespace FinancialModelB
             List<Country> countries2 = new List<Country>();
             foreach (Country c in countries)
             {
-                if (c.Filename.ToLower().Trim() == Globals.Singleton().DoubleWorldName.ToLower().Trim())
+                if (Globals.IsWorld(c.Filename))
                 {
                     countries2.Add(c);
                     weight2 += c.Weight;
@@ -461,7 +467,7 @@ namespace FinancialModelB
             List<Country> countries2 = new List<Country>();
             foreach (Country c in countries)
             {
-                if (c.Filename.ToLower().Trim() == Globals.Singleton().DoubleWorldName.ToLower().Trim())
+                if (Globals.IsWorld(c.Filename))
                 {
                     countries2.Add(c);
                     weight2 += c.Weight;
@@ -618,7 +624,7 @@ namespace FinancialModelB
             List<Country> countries2 = new List<Country>();
             foreach (Country c in countries)
             {
-                if (c.Filename.ToLower().Trim() == Globals.Singleton().DoubleWorldName.ToLower().Trim())
+                if (Globals.IsWorld(c.Filename))
                 {
                     countries2.Add(c);
                     countries2.Last().Weight = 1;
@@ -643,6 +649,8 @@ namespace FinancialModelB
             // Now enumerate countries; Group1 each time will carry just one
             foreach (var c in countries)
             {
+                if (Globals.IsWorld(c.Filename))
+                    continue;
                 List<Country> countries1 = new List<Country>();
                 countries1.Add(c);
                 countries1.Last().Weight = 1;
@@ -683,7 +691,7 @@ namespace FinancialModelB
                                     {
                                         List<SingleRunResult> result = Market.RunDoublePortfolioExperiment(
                                             mm,
-                                            (double)Globals.Singleton().DoubleWorldWeight / (double)(Globals.Singleton().DoubleWorldWeight + Globals.Singleton().DoubleCountryWeight),
+                                            sw.WorldShare,
                                             distroEquities1, distroBonds1, distroBills1,
                                             distroEquities2, distroBonds2, distroBills2);
 
