@@ -18,7 +18,7 @@ namespace FinancialModelB
             SweepMode sweepMode = SweepMode.No;
             SweepParameters[] sweeps = new SweepParameters[1];
             int nFactors = 0;
-            const int maxFactors = 5;
+            const int maxFactors = 10;
             Factor[] factors = new Factor[maxFactors];
             int cp = 0;
 
