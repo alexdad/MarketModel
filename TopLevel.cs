@@ -220,12 +220,7 @@ namespace FinancialModelB
             }
 
             IEnumerable<ModelResult> sortedResults = modelResults.OrderBy(
-                mr => (( mr.model.WorldShare.ToString("000.00") + 
-                         mr.model.CountryName + 
-                         mr.model.Strategy.ToString("00") +
-                        (mr.model.StartEq * 100).ToString("00") +
-                        (mr.model.StartBo * 100).ToString("000") +
-                        (mr.model.YearlyWithdrawal).ToString("00"))));
+                mr => ( mr.productivity));
 
             Dictionary<string, double> cutoffWdRequested = new Dictionary<string, double>();
             Dictionary<string, double> cutoffProd = new Dictionary<string, double>();
