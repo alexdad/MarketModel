@@ -52,21 +52,13 @@ namespace FinancialModelB
             this.WithdrawalAver = withdrawals.Average();
             this.WithdrawalMax = withdrawals.Max();
             this.WithdrawalMin = withdrawals.Min();
-            double binSize = (WithdrawalMax - WithdrawalMin) / Globals.Singleton().WDBins;
             double count = 0;
-            if (WithdrawalMax - WithdrawalMin > 1000)
+            double norm = Globals.Singleton().StartSum * Market.NormativeStepWD(m);
+            foreach (double wd in withdrawals)
             {
-                foreach (double wd in withdrawals)
-                {
-                    int ind = (int)((wd - this.WithdrawalMin - 1) / binSize);
-                    binCounts[ind] = binCounts[ind] + 1.0;
-                    count = count + 1.0;
-                }
-            }
-            else
-            {
-                count = withdrawals.Count();
-                binCounts[binCounts.Length - 1] = count;
+                int ind = Globals.Singleton().Quantile(wd / norm);
+                binCounts[ind] = binCounts[ind] + 1.0;
+                count = count + 1.0;
             }
 
             this.WDistrib = new double[Globals.Singleton().WDBins];

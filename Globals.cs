@@ -31,6 +31,7 @@ namespace FinancialModelB
         public int[] SweepEquities { get; set; }
         public int[] SweepBonds { get; set; }
         public int[] SweepStrategies { get; set; }
+        public double[] Qtops { get; set; }
 
         public Globals(
             int cycles,
@@ -52,7 +53,8 @@ namespace FinancialModelB
             double[] sweepWorldShares,
             int[] sweepEquities,
             int[] sweepBonds,
-            int[] sweepStrategies)
+            int[] sweepStrategies,
+            double[] qtops)
         {
             this.Cycles = cycles;
             this.Repeats = repeats;
@@ -74,11 +76,24 @@ namespace FinancialModelB
             this.SweepStrategies = sweepStrategies;
             this.EssentialsPercent = essentialsPercent;
             this.AllowedInsufficientRate = allowedInsufficientRate;
+            this.Qtops = qtops;
         }
 
         public static bool IsWorld(string c)
         {
             return (c.ToLower().Trim().CompareTo(Globals.Singleton().DoubleWorldName.ToLower().Trim()) == 0);
+        }
+
+        public int Quantile(double wd)
+        {
+            double last = double.MinValue;
+            for (int i=0; i < Qtops.Length; i++)
+            {
+                if (wd >= last && wd < Qtops[i])
+                    return i;
+                last = Qtops[i];
+            }
+            return Qtops.Length - 1;
         }
         public static void ReadParams(string fname)
         {
@@ -92,6 +107,7 @@ namespace FinancialModelB
             double stepsInYear = 10.8684;
             int bins = 200;
             int wdBins = 5;
+            double[] qtops = { 0.5, 0.8, 1.2, 2.0 };  // wdBins length
             int cutoff = 95;
             int essentialsPercent = 80;
             int allowedInsufficientRate = 5;
@@ -146,6 +162,11 @@ namespace FinancialModelB
                         break;
                     case "wdbins":
                         wdBins = int.Parse(values[1]);
+                        break;
+                    case "qtops":
+                        qtops = new double[wdBins-1];
+                        for (int i = 1; i < wdBins; i++)
+                            qtops[i - 1] = double.Parse(values[i]);
                         break;
                     case "cutoff":
                         cutoff = int.Parse(values[1]);
@@ -207,7 +228,8 @@ namespace FinancialModelB
                 sweepWorldShares,
                 sweepEquities,
                 sweepBonds,
-                sweepStrategies);
+                sweepStrategies,
+                qtops);
         }
 
         public static Globals Singleton()

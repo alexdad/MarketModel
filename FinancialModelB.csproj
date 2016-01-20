@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Country.cs" />
+    <Compile Include="Experiments.cs" />
     <Compile Include="Structs.cs" />
     <Compile Include="Globals.cs" />
     <Compile Include="Graphs.cs" />
