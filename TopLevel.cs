@@ -219,44 +219,16 @@ namespace FinancialModelB
                 }
             }
 
-            IEnumerable<ModelResult> sortedResults = modelResults.OrderBy(
-                mr => ( mr.productivity));
-
-            Dictionary<string, double> cutoffWdRequested = new Dictionary<string, double>();
-            Dictionary<string, double> cutoffProd = new Dictionary<string, double>();
-
-            using (StreamWriter sw = new StreamWriter(resFile))
-            {
-                sw.WriteLine(Utils.ResultHeader);
-
-                foreach(ModelResult mr in sortedResults)
-                {
-                    Utils.WriteResult(sw, mr, printLock);
-
-                    if (mr.overallSuccessRate >= Globals.Singleton().CutoffPercent / 100.0)
-                    {
-                        if (!cutoffProd.ContainsKey(mr.model.CountryName) ||
-                            mr.productivity >= cutoffProd[mr.model.CountryName])
-                        {
-                            cutoffProd[mr.model.CountryName] = mr.productivity;
-                            cutoffWdRequested[mr.model.CountryName] = mr.model.YearlyWithdrawal;
-                        }
-                    }
-                    else if (!cutoffProd.ContainsKey(mr.model.CountryName))
-                    {
-                        cutoffProd[mr.model.CountryName] = -1;
-                        cutoffWdRequested[mr.model.CountryName] = -1;
-                    }
-                }
-            }
-
-            using (StreamWriter sw = new StreamWriter(summaryFile))
-            {
-                foreach(string c in cutoffWdRequested.Keys)
-                {
-                    sw.WriteLine("{0},{1:F2},{2:F1},", c, cutoffProd[c], cutoffWdRequested[c]);
-                }
-            }
+            Analysis.Analyze(
+                            countries,
+                            models,
+                            portfolio,
+                            sweepMode,
+                            sweeps,
+                            modelResults, 
+                            resFile, 
+                            summaryFile, 
+                            printLock);
         }
     }
 }

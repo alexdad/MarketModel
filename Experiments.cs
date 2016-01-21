@@ -151,7 +151,7 @@ namespace FinancialModelB
             ConcurrentBag<ModelResult> modelResults,
             Object printlock)
         {
-            Country c = new Country("", 0, 0, 0.0, 0.0, 0.0, 0);
+            Country c = new Country("", 0, 0, 0.0, 0.0, 0.0, 0.0, 0);
 
             List<int> equityChanges = new List<int>();
             List<int> bondChanges = new List<int>();

@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analysis.cs" />
     <Compile Include="Country.cs" />
     <Compile Include="Experiments.cs" />
     <Compile Include="Structs.cs" />

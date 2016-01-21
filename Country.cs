@@ -10,7 +10,7 @@ namespace FinancialModelB
 {
     public class Country
     {
-        public Country(string fname, int bp, int tp, double le, double lbo, double lbi, int weight)
+        public Country(string fname, int bp, int tp, double le, double lbo, double lbi, double population, int weight)
         {
             Filename = fname;
             BottomPower = bp;
@@ -18,6 +18,7 @@ namespace FinancialModelB
             LastEquity = le;
             LastBond = lbo;
             LastBill = lbi;
+            Population = population;
             Weight = weight;
         }
         public Country()
@@ -36,6 +37,7 @@ namespace FinancialModelB
         public double LastEquity { get; set; }
         public double LastBond { get; set; }
         public double LastBill { get; set; }
+        public double Population { get; set; }
         public int Weight { get; set; }
 
         public static List<Country> ReadCountries(string fname, bool ignoreZeroWeights)
@@ -48,16 +50,17 @@ namespace FinancialModelB
                 if (line.Length == 0 || line.StartsWith("#"))
                     continue;
                 var values = line.Split(',');
-                int weight = int.Parse(values[6]);
+                int weight = int.Parse(values[7]);
                 if (weight > 0)
                 {
                     list.Add(new Country(
                         values[0],
                         int.Parse(values[1]),
                         int.Parse(values[2]),
-                        float.Parse(values[3]),
-                        float.Parse(values[4]),
-                        float.Parse(values[5]),
+                        double.Parse(values[3]),
+                        double.Parse(values[4]),
+                        double.Parse(values[5]),
+                        double.Parse(values[6]),
                         weight));
                 }
             }

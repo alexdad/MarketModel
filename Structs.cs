@@ -48,4 +48,19 @@ namespace FinancialModelB
         public int Bonds;
         public int Strategy;
     }
+
+    public struct SweepStat
+    {
+        public Dictionary<int, List<ModelResult>> sweepResults;
+        public double weightedProd;
+        public double weightedSuccessRate;
+        public double totalPop;
+    }
+
+    public struct SweepResult
+    {
+        public SweepParameters parameters;
+        public SweepStat stat;
+    }
+
 }
