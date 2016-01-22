@@ -152,7 +152,7 @@ namespace FinancialModelB
                 foreach (string c in bestReliableModel.Keys)
                 {
                     sw.WriteLine("{0},{1},{2},{3},{4:F2},{5:F2},{6:F2},", 
-                        c,  
+                        c.Replace(".JPG",""),  
                         bestReliableModel[c].Strategy,
                         bestReliableModel[c].StartEq,
                         bestReliableModel[c].StartBo,

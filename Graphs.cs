@@ -320,7 +320,7 @@ namespace FinancialModelB
                     lock (printlock)
                     {
                         Console.WriteLine("{0}: {1:F2}, {2:F2}, {3:F2}, equity: {4:F2} vs {5:F2}, bonds {6:F2} vs {7:F2}, bills {8:F2} vs {9:F2}",
-                            country,
+                            country.Replace(".JPG", ""),
                             equityError, bondError, billError,
                             lastEquity, cn.LastEquity, lastBond, cn.LastBond, lastBill, cn.LastBill);
                     }
