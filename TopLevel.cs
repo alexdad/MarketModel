@@ -170,7 +170,8 @@ namespace FinancialModelB
                 sweepMode,
                 sweeps,
                 Utils.ResultFileName(resultPrefix),
-                Utils.SummaryFileName(resultPrefix));
+                Utils.PerCountryFileName(resultPrefix),
+                Utils.CrossCountryFileName(resultPrefix));
         }
 
         static void Execute(
@@ -180,42 +181,48 @@ namespace FinancialModelB
             SweepMode sweepMode,
             SweepParameters[] sweeps,
             string resFile,
-            string summaryFile)
+            string perCountrySummaryFilename,
+            string crossCountrySummaryFilename)
         {
             ConcurrentBag<ModelResult> modelResults = new ConcurrentBag<ModelResult>();
             Object printLock = new Object();
 
-            if (sweepMode == SweepMode.No)
+            using (StreamWriter swr = new StreamWriter(resFile))
             {
-                if (portfolio == Portfolio.Single)
+                swr.WriteLine(Utils.ResultHeader);
+
+                if (sweepMode == SweepMode.No)
                 {
-                    Experiments.ExecuteSingle(countries, models, modelResults, printLock);
+                    if (portfolio == Portfolio.Single)
+                    {
+                        Experiments.ExecuteSingle(countries, models, modelResults, swr, printLock);
+                    }
+                    else if (portfolio == Portfolio.Double)
+                    {
+                        Experiments.ExecuteDouble(countries, models, modelResults, swr, printLock);
+                    }
                 }
-                else if (portfolio == Portfolio.Double)
+                else if (sweepMode == SweepMode.SweepNoCountry)
                 {
-                    Experiments.ExecuteDouble(countries, models, modelResults, printLock);
+                    if (portfolio == Portfolio.Single)
+                    {
+                        Experiments.ExecuteSweepSingle(countries, models, sweeps, modelResults, swr, printLock);
+                    }
+                    else if (portfolio == Portfolio.Double)
+                    {
+                        Experiments.ExecuteSweepDouble(countries, models, sweeps, modelResults, swr, printLock);
+                    }
                 }
-            }
-            else if (sweepMode == SweepMode.SweepNoCountry)
-            {
-                if (portfolio == Portfolio.Single)
+                else if (sweepMode == SweepMode.SweepAndCountry)
                 {
-                    Experiments.ExecuteSweepSingle(countries, models, sweeps, modelResults, printLock);
-                }
-                else if (portfolio == Portfolio.Double)
-                {
-                    Experiments.ExecuteSweepDouble(countries, models, sweeps, modelResults, printLock);
-                }
-            }
-            else if (sweepMode == SweepMode.SweepAndCountry)
-            {
-                if (portfolio == Portfolio.Single)
-                {
-                    Experiments.ExecuteSweepSingleByCountry(countries, models, sweeps, modelResults, printLock);
-                }
-                else if (portfolio == Portfolio.Double)
-                {
-                    Experiments.ExecuteSweepDoubleByCountry(countries, models, sweeps, modelResults, printLock);
+                    if (portfolio == Portfolio.Single)
+                    {
+                        Experiments.ExecuteSweepSingleByCountry(countries, models, sweeps, modelResults, swr, printLock);
+                    }
+                    else if (portfolio == Portfolio.Double)
+                    {
+                        Experiments.ExecuteSweepDoubleByCountry(countries, models, sweeps, modelResults, swr, printLock);
+                    }
                 }
             }
 
@@ -226,8 +233,8 @@ namespace FinancialModelB
                             sweepMode,
                             sweeps,
                             modelResults, 
-                            resFile, 
-                            summaryFile, 
+                            perCountrySummaryFilename, 
+                            crossCountrySummaryFilename,
                             printLock);
         }
     }

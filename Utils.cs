@@ -126,13 +126,18 @@ namespace FinancialModelB
         public static string CommandFileName(string prefix)
         {
             Init(prefix);
-            return String.Format("{0}\\Run.cmd", s_ResultDirectory);
+            return String.Format("{0}\\Run.txt", s_ResultDirectory);
         }
 
-        public static string SummaryFileName(string prefix)
+        public static string PerCountryFileName(string prefix)
         {
             Init(prefix);
-            return String.Format("{0}\\Summary.csv", s_ResultDirectory);
+            return String.Format("{0}\\PerCountry.csv", s_ResultDirectory);
+        }
+        public static string CrossCountryFileName(string prefix)
+        {
+            Init(prefix);
+            return String.Format("{0}\\CrossCountry.csv", s_ResultDirectory);
         }
 
         public static string ResultFileName(string prefix)

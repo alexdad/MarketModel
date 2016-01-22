@@ -16,6 +16,7 @@ namespace FinancialModelB
             List<Country> countries,
             List<Model> models,
             ConcurrentBag<ModelResult> modelResults,
+            StreamWriter swr,
             Object printlock)
         {
             List<int> equityChanges = new List<int>();
@@ -55,6 +56,7 @@ namespace FinancialModelB
                         ModelResult mr = new ModelResult(m, result);
                         modelResults.Add(mr);
                         Utils.WriteResult(null, m, mr, printlock);
+                        Utils.WriteResult(swr, m, mr, printlock);
                     }
                 });
         }
@@ -64,6 +66,7 @@ namespace FinancialModelB
             List<Country> countries,
             List<Model> models,
             ConcurrentBag<ModelResult> modelResults,
+            StreamWriter swr,
             Object printlock)
         {
             // Separate countries into 2 groups: 2=WORLD, 1=all others
@@ -138,7 +141,7 @@ namespace FinancialModelB
                         ModelResult mr = new ModelResult(m, result);
                         modelResults.Add(mr);
                         Utils.WriteResult(null, m, mr, printlock);
-
+                        Utils.WriteResult(swr, m, mr, printlock);
                     }
                 });
         }
@@ -149,6 +152,7 @@ namespace FinancialModelB
             List<Model> models,
             SweepParameters[] sweeps,
             ConcurrentBag<ModelResult> modelResults,
+            StreamWriter swr,
             Object printlock)
         {
             Country c = new Country("", 0, 0, 0.0, 0.0, 0.0, 0.0, 0);
@@ -195,6 +199,7 @@ namespace FinancialModelB
                                 ModelResult mr = new ModelResult(mm, result);
                                 modelResults.Add(mr);
                                 Utils.WriteResult(null, mm, mr, printlock);
+                                Utils.WriteResult(swr, mm, mr, printlock);
                             }
                         });
                 });
@@ -206,6 +211,7 @@ namespace FinancialModelB
             List<Model> models,
             SweepParameters[] sweeps,
             ConcurrentBag<ModelResult> modelResults,
+            StreamWriter swr,
             Object printlock)
         {
             // Separate countries into 2 groups: 2=WORLD, 1=all others
@@ -286,6 +292,7 @@ namespace FinancialModelB
                                 ModelResult mr = new ModelResult(mm, result);
                                 modelResults.Add(mr);
                                 Utils.WriteResult(null, mm, mr, printlock);
+                                Utils.WriteResult(swr, mm, mr, printlock);
                             }
                         });
                 });
@@ -297,6 +304,7 @@ namespace FinancialModelB
             List<Model> models,
             SweepParameters[] sweeps,
             ConcurrentBag<ModelResult> modelResults,
+            StreamWriter swr,
             Object printlock)
         {
             foreach (var c in countries)
@@ -350,6 +358,7 @@ namespace FinancialModelB
                                         ModelResult mr = new ModelResult(mm, result);
                                         modelResults.Add(mr);
                                         Utils.WriteResult(null, mm, mr, printlock);
+                                        Utils.WriteResult(swr, mm, mr, printlock);
                                     }
                                 }
                             });
@@ -365,6 +374,7 @@ namespace FinancialModelB
             List<Model> models,
             SweepParameters[] sweeps,
             ConcurrentBag<ModelResult> modelResults,
+            StreamWriter swr,
             Object printlock)
         {
             // Group2 is just the World
@@ -445,6 +455,7 @@ namespace FinancialModelB
                                         ModelResult mr = new ModelResult(mm, result);
                                         modelResults.Add(mr);
                                         Utils.WriteResult(null, mm, mr, printlock);
+                                        Utils.WriteResult(swr, mm, mr, printlock);
                                     }
                                 }
                             });

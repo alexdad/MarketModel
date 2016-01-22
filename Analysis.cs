@@ -18,8 +18,31 @@ namespace FinancialModelB
             SweepMode sweepMode,
             SweepParameters[] sweeps,
             ConcurrentBag<ModelResult> modelResults,
-            string resFile,
-            string summaryFile,
+            string perCountrySummaryFilename,
+            string crossCountrySummaryFilename,
+            Object printLock)
+        {
+            // Simple sorting of successful runs
+            PerCountryAnalysis(modelResults, perCountrySummaryFilename, printLock);
+
+            if (sweepMode == SweepMode.SweepAndCountry)
+            {
+                CrossCountryAnalysis(countries, models, portfolio,
+                                     sweepMode, sweeps, modelResults,
+                                     perCountrySummaryFilename, crossCountrySummaryFilename, printLock);
+            }
+
+        }
+
+        public static void CrossCountryAnalysis(
+            List<Country> countries,
+            List<Model> models,
+            Portfolio portfolio,
+            SweepMode sweepMode,
+            SweepParameters[] sweeps,
+            ConcurrentBag<ModelResult> modelResults,
+            string perCountrySummaryFilename,
+            string crossCountrySummaryFilename,
             Object printLock)
         {
             Dictionary<SweepParameters, SweepStat> sorter = new Dictionary<SweepParameters, SweepStat>();
@@ -81,65 +104,61 @@ namespace FinancialModelB
             IEnumerable<SweepResult> sortedResults = sweepResults.OrderBy(
                 sr => (sr.stat.weightedSuccessRate * 10000.0 + sr.stat.weightedProd));
 
-            Console.WriteLine("WD,Stream,World,Eq,Bo,Prod,Success,");
-            foreach(SweepResult  sr in sortedResults)
+            using (StreamWriter sw = new StreamWriter(crossCountrySummaryFilename))
             {
-                Console.WriteLine("{0:F2},{1:F2},{2:F2},{3:F2},{4:F2},{5:F2},{6:F2},", 
-                    sr.parameters.WithdrawalRate,
-                    sr.parameters.Strategy,
-                    sr.parameters.WorldShare,
-                    sr.parameters.Equity,
-                    sr.parameters.Bonds,
-                    sr.stat.weightedProd,
-                    sr.stat.weightedSuccessRate);
+                sw.WriteLine("WdRate,Strategy,World,Eq,Bo,Prod,Success,");
+                foreach (SweepResult sr in sortedResults)
+                {
+                    sw.WriteLine("{0:F2},{1},{2:F2},{3},{4},{5:F2},{6:F2},",
+                        sr.parameters.WithdrawalRate,
+                        sr.parameters.Strategy,
+                        sr.parameters.WorldShare,
+                        sr.parameters.Equity,
+                        sr.parameters.Bonds,
+                        sr.stat.weightedProd,
+                        sr.stat.weightedSuccessRate);
 
+                }
             }
 
-            // Simple sorting of successful runs
-            SimpeSort(modelResults, resFile, summaryFile, printLock);
         }
-        public static void SimpeSort(
+        public static void PerCountryAnalysis(
             ConcurrentBag<ModelResult> modelResults,
-            string resFile,
             string summaryFile,
             Object printLock)
         {
             IEnumerable<ModelResult> sortedResults = modelResults.OrderBy(
                 mr => (mr.productivity));
 
-            Dictionary<string, double> cutoffWdRequested = new Dictionary<string, double>();
-            Dictionary<string, double> cutoffProd = new Dictionary<string, double>();
+            Dictionary<string, double> bestReliableProd = new Dictionary<string, double>();
+            Dictionary<string, Model> bestReliableModel = new Dictionary<string, Model>();
 
-            using (StreamWriter sw = new StreamWriter(resFile))
+            foreach (ModelResult mr in sortedResults)
             {
-                sw.WriteLine(Utils.ResultHeader);
-
-                foreach (ModelResult mr in sortedResults)
+                if (mr.overallSuccessRate >= Globals.Singleton().CutoffPercent / 100.0)
                 {
-                    Utils.WriteResult(sw, mr, printLock);
-
-                    if (mr.overallSuccessRate >= Globals.Singleton().CutoffPercent / 100.0)
+                    if (!bestReliableProd.ContainsKey(mr.model.CountryName) ||
+                        mr.productivity >= bestReliableProd[mr.model.CountryName])
                     {
-                        if (!cutoffProd.ContainsKey(mr.model.CountryName) ||
-                            mr.productivity >= cutoffProd[mr.model.CountryName])
-                        {
-                            cutoffProd[mr.model.CountryName] = mr.productivity;
-                            cutoffWdRequested[mr.model.CountryName] = mr.model.YearlyWithdrawal;
-                        }
-                    }
-                    else if (!cutoffProd.ContainsKey(mr.model.CountryName))
-                    {
-                        cutoffProd[mr.model.CountryName] = -1;
-                        cutoffWdRequested[mr.model.CountryName] = -1;
+                        bestReliableProd[mr.model.CountryName] = mr.productivity;
+                        bestReliableModel[mr.model.CountryName] = mr.model;
                     }
                 }
             }
 
             using (StreamWriter sw = new StreamWriter(summaryFile))
             {
-                foreach (string c in cutoffWdRequested.Keys)
+                sw.WriteLine("Country,Strategy,Eq,Bo,WorldShare,WdRate,Best_Reliable_Productivity_Effective");
+                foreach (string c in bestReliableModel.Keys)
                 {
-                    sw.WriteLine("{0},{1:F2},{2:F1},", c, cutoffProd[c], cutoffWdRequested[c]);
+                    sw.WriteLine("{0},{1},{2},{3},{4:F2},{5:F2},{6:F2},", 
+                        c,  
+                        bestReliableModel[c].Strategy,
+                        bestReliableModel[c].StartEq,
+                        bestReliableModel[c].StartBo,
+                        bestReliableModel[c].WorldShare,
+                        bestReliableModel[c].YearlyWithdrawal,
+                        bestReliableProd[c]);
                 }
             }
         }
